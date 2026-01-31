@@ -1,0 +1,173 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  MEMBER
+  ADMIN
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String?   @unique
+  name          String?
+  image         String?
+  provider      String
+  providerId    String
+
+  // 추가 회원 정보
+  kakaoId       String?   @unique
+  nickname      String?
+  realName      String?
+  phoneNumber   String?
+  region        String?
+  city          String?
+  birthYear     String?
+  mainPosition      String?   // 주 포지션
+  subPositions      String[]  // 부 포지션 목록
+  role             Role      @default(MEMBER)
+  level            Int?      @default(1) // 선수 레벨 (1-10, 총무만 수정 가능)
+  isActive         Boolean   @default(true) // 활성 상태 (총무가 비활성화 가능)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  createdSchedules Schedule[]     @relation("ScheduleCreator")
+  scheduleAttendances ScheduleAttendance[]
+  invitedGuests    ScheduleAttendance[] @relation("InvitedGuests")
+  badges           UserBadge[]
+  scheduleComments ScheduleComment[] @relation("ScheduleCommentAuthor")
+
+  @@unique([provider, providerId])
+}
+
+model Badge {
+  id          String   @id @default(cuid())
+  code        String   @unique // ROOKIE_MEMBER, FIRST_MATCH 등
+  name        String   // 신입 선수, 첫 출전 등
+  description String   // 뱃지 설명
+  icon        String   // 이모지 또는 아이콘 코드
+  category    String   // rookie, attendance, performance
+  tier        String   @default("common") // common, rare, epic, legendary
+  color       String   @default("#8B5CF6") // 뱃지 색상 (기본 보라색)
+  sortOrder   Int      @default(0) // 표시 순서
+  isActive    Boolean  @default(true) // 활성화 여부
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userBadges  UserBadge[]
+
+  @@index([category, sortOrder])
+}
+
+model UserBadge {
+  id             String    @id @default(cuid())
+  userId         String
+  badgeId        String
+  earnedAt       DateTime  @default(now())
+  acknowledged   Boolean   @default(false)
+  acknowledgedAt DateTime?
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge  Badge  @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@index([userId, acknowledged])
+}
+
+model Schedule {
+  id              String    @id @default(cuid())
+  title           String    // 자동 생성되는 제목
+  type            String    // internal, match, training
+  matchDate       DateTime
+  startTime       String    // "19:00"
+  gatherTime      String    // "18:30"
+  location        String
+  restTime        Int       @default(10)
+  description     String?
+  opponentTeam    String?   // A매치용 상대팀명
+  trainingContent String?   // 연습용 연습내용
+  status          String    @default("SCHEDULED") // SCHEDULED, ONGOING, COMPLETED, CANCELLED
+
+  // 경기 결과 관련 필드 제거됨
+
+  // 팀편성 결과 저장
+  teamFormation   Json?     // 팀편성 결과 (노랑팀/파랑팀 정보)
+  formationDate   DateTime? // 팀편성 생성 일시
+  formationConfirmed Boolean @default(false) // 팀편성 확정 상태 (총무만 확정 가능)
+
+  // 게스트 허용 여부
+  allowGuests     Boolean   @default(false)
+
+  // 비정규화된 참석 통계 (성능 최적화)
+  attendingCount    Int @default(0)
+  notAttendingCount Int @default(0)
+  pendingCount      Int @default(0)
+
+  createdBy       String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  creator      User      @relation("ScheduleCreator", fields: [createdBy], references: [id])
+  attendances  ScheduleAttendance[]
+  comments     ScheduleComment[]
+}
+
+model ScheduleAttendance {
+  id         String   @id @default(cuid())
+  scheduleId String
+  userId     String?  // 게스트의 경우 null일 수 있음
+  status     String   @default("PENDING") // PENDING, ATTENDING, NOT_ATTENDING
+
+  // 게스트 관련 필드
+  isGuest    Boolean  @default(false)
+  guestName  String?  // 게스트 이름
+  guestLevel Int?     // 게스트 레벨
+  guestId    String?  // 게스트 고유 ID
+  invitedByUserId String? // 초대한 사용자 ID
+  sameTeamAsInviter Boolean @default(false) // 초대자와 같은 팀 희망 여부
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  schedule   Schedule @relation(fields: [scheduleId], references: [id])
+  user       User?    @relation(fields: [userId], references: [id])
+  invitedBy  User?    @relation("InvitedGuests", fields: [invitedByUserId], references: [id])
+
+  @@unique([scheduleId, userId])
+  @@unique([scheduleId, guestId])
+  @@index([scheduleId]) // Performance: fast lookup by schedule
+}
+
+// SchedulePlayerStat 모델 삭제됨
+
+model ScheduleComment {
+  id         String   @id @default(cuid())
+  content    String
+  scheduleId String
+  authorId   String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  schedule   Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  author     User     @relation("ScheduleCommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([scheduleId])
+}
+
+// 공지사항 모델
+model Announcement {
+  id        String   @id @default(cuid())
+  content   String
+  isActive  Boolean  @default(true)
+  createdBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, createdAt])
+}
