@@ -190,6 +190,34 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                   {daysLeft === 0 ? "D-Day" : `D-${daysLeft}`}
                 </span>
               )}
+              {isManagerMode && (
+                <div className="flex gap-1 mt-1">
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onEditSchedule(schedule)
+                    }}
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 text-gray-500 hover:text-gray-900"
+                    title="수정"
+                  >
+                    <Edit className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onDeleteSchedule(schedule.id)
+                    }}
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                    title="삭제"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 

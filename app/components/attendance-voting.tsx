@@ -349,10 +349,25 @@ export function AttendanceVoting({
             불참
           </Button>
         </div>
-        <div className="flex justify-between text-xs text-gray-500 px-1">
-          <span>참석 {stats.attending}</span>
-          <span>불참 {stats.notAttending}</span>
-          <span>미정 {stats.pending}</span>
+        <div className="flex justify-between text-xs text-gray-500 px-1 pt-1">
+          <button
+            onClick={(e) => { e.stopPropagation(); setDetailDialogType('attending'); }}
+            className="hover:text-green-600 hover:underline cursor-pointer"
+          >
+            참석 {stats.attending}
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setDetailDialogType('not_attending'); }}
+            className="hover:text-red-600 hover:underline cursor-pointer"
+          >
+            불참 {stats.notAttending}
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setDetailDialogType('pending'); }}
+            className="hover:text-gray-800 hover:underline cursor-pointer"
+          >
+            미정 {stats.pending}
+          </button>
         </div>
       </div>
     )
@@ -445,81 +460,79 @@ export function AttendanceVoting({
         )}
       </div>
 
-      {myStatus !== 'pending' && (
-        <div className="flex gap-2">
-          <Dialog open={detailDialogType === 'attending'} onOpenChange={(open) => setDetailDialogType(open ? 'attending' : null)}>
-            <DialogTrigger asChild>
-              <button className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border transition-colors ${stats.attending > 0 ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100' : 'bg-gray-50 border-gray-200 text-gray-500'}`} disabled={isPastSchedule}>
-                <span className="text-sm font-medium">참석 {stats.attending}</span>
-              </button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader><DialogTitle>참석 인원</DialogTitle><DialogDescription>참석으로 투표한 멤버 목록입니다.</DialogDescription></DialogHeader>
-              <div className="max-h-[400px] overflow-y-auto space-y-2">
-                {isDialogLoading ? <p className="text-center text-gray-500 py-4">로딩 중...</p> : attendees.filter(a => a.status === 'attending').length === 0 ? <p className="text-center text-gray-500 py-4">참석 인원이 없습니다.</p> :
-                  attendees.filter(a => a.status === 'attending').sort((a, b) => a.name.localeCompare(b.name, 'ko')).map((attendee) => (
-                    <div key={attendee.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
-                      <Avatar className="h-8 w-8"><AvatarImage src={attendee.profileImage || undefined} /><AvatarFallback>{attendee.name[0]}</AvatarFallback></Avatar>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">{attendee.name}{attendee.isGuest && attendee.invitedBy && <span className="text-gray-500 font-normal"> ({attendee.invitedBy} 지인)</span>}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {attendee.isGuest && <Badge variant="outline" className="text-xs">게스트</Badge>}
-                        {(isManagerMode || (attendee.isGuest && attendee.invitedByUserId === currentUserId)) && (
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => handleDeleteAttendance(attendee)} title="삭제"><Trash2 className="h-3.5 w-3.5" /></Button>
-                        )}
-                      </div>
+      <div className="flex gap-2">
+        <Dialog open={detailDialogType === 'attending'} onOpenChange={(open) => setDetailDialogType(open ? 'attending' : null)}>
+          <DialogTrigger asChild>
+            <button className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border transition-colors ${stats.attending > 0 ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100' : 'bg-gray-50 border-gray-200 text-gray-500'}`} disabled={isPastSchedule}>
+              <span className="text-sm font-medium">참석 {stats.attending}</span>
+            </button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>참석 인원</DialogTitle><DialogDescription>참석으로 투표한 멤버 목록입니다.</DialogDescription></DialogHeader>
+            <div className="max-h-[400px] overflow-y-auto space-y-2">
+              {isDialogLoading ? <p className="text-center text-gray-500 py-4">로딩 중...</p> : attendees.filter(a => a.status === 'attending').length === 0 ? <p className="text-center text-gray-500 py-4">참석 인원이 없습니다.</p> :
+                attendees.filter(a => a.status === 'attending').sort((a, b) => a.name.localeCompare(b.name, 'ko')).map((attendee) => (
+                  <div key={attendee.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
+                    <Avatar className="h-8 w-8"><AvatarImage src={attendee.profileImage || undefined} /><AvatarFallback>{attendee.name[0]}</AvatarFallback></Avatar>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{attendee.name}{attendee.isGuest && attendee.invitedBy && <span className="text-gray-500 font-normal"> ({attendee.invitedBy} 지인)</span>}</p>
                     </div>
-                  ))
-                }
-              </div>
-            </DialogContent>
-          </Dialog>
+                    <div className="flex items-center gap-2">
+                      {attendee.isGuest && <Badge variant="outline" className="text-xs">게스트</Badge>}
+                      {(isManagerMode || (attendee.isGuest && attendee.invitedByUserId === currentUserId)) && (
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => handleDeleteAttendance(attendee)} title="삭제"><Trash2 className="h-3.5 w-3.5" /></Button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              }
+            </div>
+          </DialogContent>
+        </Dialog>
 
-          <Dialog open={detailDialogType === 'not_attending'} onOpenChange={(open) => setDetailDialogType(open ? 'not_attending' : null)}>
-            <DialogTrigger asChild>
-              <button className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border transition-colors ${stats.notAttending > 0 ? 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100' : 'bg-gray-50 border-gray-200 text-gray-500'}`} disabled={isPastSchedule}>
-                <span className="text-sm font-medium">불참 {stats.notAttending}</span>
-              </button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader><DialogTitle>불참 인원</DialogTitle><DialogDescription>불참으로 투표한 멤버 목록입니다.</DialogDescription></DialogHeader>
-              <div className="max-h-[400px] overflow-y-auto space-y-2">
-                {isDialogLoading ? <p className="text-center text-gray-500 py-4">로딩 중...</p> : attendees.filter(a => a.status === 'not_attending').length === 0 ? <p className="text-center text-gray-500 py-4">불참 인원이 없습니다.</p> :
-                  attendees.filter(a => a.status === 'not_attending').sort((a, b) => a.name.localeCompare(b.name, 'ko')).map((attendee) => (
-                    <div key={attendee.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
-                      <Avatar className="h-8 w-8"><AvatarImage src={attendee.profileImage || undefined} /><AvatarFallback>{attendee.name[0]}</AvatarFallback></Avatar>
-                      <div className="flex-1"><p className="text-sm font-medium">{attendee.name}</p></div>
-                      {isManagerMode && <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => handleDeleteAttendance(attendee)} title="삭제"><Trash2 className="h-3.5 w-3.5" /></Button>}
-                    </div>
-                  ))
-                }
-              </div>
-            </DialogContent>
-          </Dialog>
+        <Dialog open={detailDialogType === 'not_attending'} onOpenChange={(open) => setDetailDialogType(open ? 'not_attending' : null)}>
+          <DialogTrigger asChild>
+            <button className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border transition-colors ${stats.notAttending > 0 ? 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100' : 'bg-gray-50 border-gray-200 text-gray-500'}`} disabled={isPastSchedule}>
+              <span className="text-sm font-medium">불참 {stats.notAttending}</span>
+            </button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>불참 인원</DialogTitle><DialogDescription>불참으로 투표한 멤버 목록입니다.</DialogDescription></DialogHeader>
+            <div className="max-h-[400px] overflow-y-auto space-y-2">
+              {isDialogLoading ? <p className="text-center text-gray-500 py-4">로딩 중...</p> : attendees.filter(a => a.status === 'not_attending').length === 0 ? <p className="text-center text-gray-500 py-4">불참 인원이 없습니다.</p> :
+                attendees.filter(a => a.status === 'not_attending').sort((a, b) => a.name.localeCompare(b.name, 'ko')).map((attendee) => (
+                  <div key={attendee.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
+                    <Avatar className="h-8 w-8"><AvatarImage src={attendee.profileImage || undefined} /><AvatarFallback>{attendee.name[0]}</AvatarFallback></Avatar>
+                    <div className="flex-1"><p className="text-sm font-medium">{attendee.name}</p></div>
+                    {isManagerMode && <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => handleDeleteAttendance(attendee)} title="삭제"><Trash2 className="h-3.5 w-3.5" /></Button>}
+                  </div>
+                ))
+              }
+            </div>
+          </DialogContent>
+        </Dialog>
 
-          <Dialog open={detailDialogType === 'pending'} onOpenChange={(open) => setDetailDialogType(open ? 'pending' : null)}>
-            <DialogTrigger asChild>
-              <button className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border transition-colors ${stats.pending > 0 ? 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100' : 'bg-gray-50 border-gray-200 text-gray-500'}`} disabled={isPastSchedule}>
-                <span className="text-sm font-medium">미정 {stats.pending}</span>
-              </button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader><DialogTitle>미응답 인원</DialogTitle><DialogDescription>아직 투표하지 않은 멤버 목록입니다.</DialogDescription></DialogHeader>
-              <div className="max-h-[400px] overflow-y-auto space-y-2">
-                {isDialogLoading ? <p className="text-center text-gray-500 py-4">로딩 중...</p> : attendees.filter(a => a.status === 'pending').length === 0 ? <p className="text-center text-gray-500 py-4">미응답 인원이 없습니다.</p> :
-                  attendees.filter(a => a.status === 'pending').sort((a, b) => a.name.localeCompare(b.name, 'ko')).map((attendee) => (
-                    <div key={attendee.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
-                      <Avatar className="h-8 w-8"><AvatarImage src={attendee.profileImage || undefined} /><AvatarFallback>{attendee.name[0]}</AvatarFallback></Avatar>
-                      <div className="flex-1"><p className="text-sm font-medium">{attendee.name}</p></div>
-                    </div>
-                  ))
-                }
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-      )}
+        <Dialog open={detailDialogType === 'pending'} onOpenChange={(open) => setDetailDialogType(open ? 'pending' : null)}>
+          <DialogTrigger asChild>
+            <button className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border transition-colors ${stats.pending > 0 ? 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100' : 'bg-gray-50 border-gray-200 text-gray-500'}`} disabled={isPastSchedule}>
+              <span className="text-sm font-medium">미정 {stats.pending}</span>
+            </button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>미응답 인원</DialogTitle><DialogDescription>아직 투표하지 않은 멤버 목록입니다.</DialogDescription></DialogHeader>
+            <div className="max-h-[400px] overflow-y-auto space-y-2">
+              {isDialogLoading ? <p className="text-center text-gray-500 py-4">로딩 중...</p> : attendees.filter(a => a.status === 'pending').length === 0 ? <p className="text-center text-gray-500 py-4">미응답 인원이 없습니다.</p> :
+                attendees.filter(a => a.status === 'pending').sort((a, b) => a.name.localeCompare(b.name, 'ko')).map((attendee) => (
+                  <div key={attendee.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
+                    <Avatar className="h-8 w-8"><AvatarImage src={attendee.profileImage || undefined} /><AvatarFallback>{attendee.name[0]}</AvatarFallback></Avatar>
+                    <div className="flex-1"><p className="text-sm font-medium">{attendee.name}</p></div>
+                  </div>
+                ))
+              }
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   )
 }

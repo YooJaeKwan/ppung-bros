@@ -299,7 +299,7 @@ export function AppWrapper() {
                   >
                     {isLoading ? '로그인 중...' : !isKakaoReady ? 'SDK 로딩 중...' : '카카오로 시작하기'}
                   </Button>
-                  <p className="text-xs text-center text-black/80 drop-shadow-sm">
+                  <p className="text-xs text-center text-white/80 drop-shadow-sm">
                     최초 로그인시 자동으로 팀 가입 화면으로 이동합니다
                   </p>
                 </CardContent>
