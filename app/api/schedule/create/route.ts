@@ -30,10 +30,8 @@ export async function POST(request: NextRequest) {
 
 
 
-    // 과거 날짜 검증 (한국시간 기준)
-    const [year, month, day] = date.split('-')
-    const [hour, minute] = time.split(':')
-    const inputDateTime = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute))
+    // 한국시간을 명시적으로 지정하여 DateTime 생성 (KST: UTC+9)
+    const inputDateTime = new Date(`${date}T${time}:00.000+09:00`)
 
     if (inputDateTime < new Date()) {
       return NextResponse.json(

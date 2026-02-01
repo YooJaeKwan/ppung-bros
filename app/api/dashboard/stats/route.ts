@@ -157,7 +157,7 @@ export async function GET(request: NextRequest) {
     const formattedRecentMatches = recentMatches.map((match: any) => {
       return {
         id: match.id,
-        date: match.matchDate.toISOString().split('T')[0],
+        date: new Date(match.matchDate.getTime() + 9 * 60 * 60 * 1000).toISOString().split('T')[0],
         location: match.location,
         type: match.type
       }
