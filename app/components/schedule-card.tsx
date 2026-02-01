@@ -182,10 +182,6 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
               </div>
             </div>
             <div className="flex flex-col items-end gap-1">
-              <Badge className={getTypeColor(schedule.type)} variant="secondary">
-                {schedule.type === "internal" ? "자체" :
-                  schedule.type === "match" ? `A매치${schedule.opponentTeam ? ` vs ${schedule.opponentTeam}` : ''}` : "연습"}
-              </Badge>
               {!isPastSchedule && (
                 <span className={`text-xs font-bold ${daysLeft === 0 ? 'text-red-600' :
                   daysLeft === 1 ? 'text-orange-600' :
@@ -275,11 +271,6 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
               {/* Badges */}
               <div className="flex flex-col items-end gap-2">
                 <div className="flex gap-1">
-                  <Badge className={getTypeColor(schedule.type)} variant="secondary">
-                    {schedule.type === "internal" ? "자체경기" :
-                      schedule.type === "match" ? `A매치${schedule.opponentTeam ? ` vs ${schedule.opponentTeam}` : ''}` :
-                        schedule.type === "training" ? "연습" : schedule.type}
-                  </Badge>
                   {isPastSchedule && (
                     <Badge variant="outline" className="text-gray-500 border-gray-300">
                       종료

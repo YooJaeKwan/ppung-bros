@@ -20,28 +20,14 @@ export async function PUT(request: NextRequest) {
       userId // 수정 권한 확인용
     } = body
 
-    // 필수 필드 검증 (gatherTime 제거)
-    if (!scheduleId || !type || !date || !time || !location || !userId) {
+    // 필수 필드 검증 (gatherTime, type 제거)
+    if (!scheduleId || !date || !time || !location || !userId) {
       return NextResponse.json(
         { error: '필수 정보가 누락되었습니다.' },
         { status: 400 }
       )
     }
 
-    // 유형별 추가 필드 검증
-    if (type === "match" && !opponentTeam) {
-      return NextResponse.json(
-        { error: 'A매치의 경우 상대팀명이 필요합니다.' },
-        { status: 400 }
-      )
-    }
-
-    if (type === "training" && !trainingContent) {
-      return NextResponse.json(
-        { error: '연습의 경우 연습 내용이 필요합니다.' },
-        { status: 400 }
-      )
-    }
 
     // 일정 존재 확인
     const existingSchedule = await prisma.schedule.findUnique({
@@ -81,26 +67,15 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // 유형에 따른 제목 자동 생성
-    let autoTitle = ""
-    switch (type) {
-      case "internal":
-        autoTitle = "자체경기"
-        break
-      case "match":
-        autoTitle = `vs ${opponentTeam}`
-        break
-      case "training":
-        autoTitle = `연습 - ${trainingContent}`
-        break
-    }
+    // 장소 + 시간으로 제목 자동 생성
+    const autoTitle = `${location}\n${time}`
 
     // 일정 정보 업데이트
     const updatedSchedule = await prisma.schedule.update({
       where: { id: scheduleId },
       data: {
         title: autoTitle,
-        type,
+        type: "internal",
         matchDate: kstDateTime, // DateTime으로 저장
         startTime: time,
         gatherTime: gatherTime || "",

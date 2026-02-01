@@ -40,9 +40,6 @@ export const sortByPosition = (players: any[]) => {
 
 // 카카오톡 공유 텍스트 생성
 export const generateKakaoShareText = (schedule: any, isManagerMode: boolean = false) => {
-  const typeLabel = schedule.type === "internal" ? "자체경기" :
-    schedule.type === "match" ? `A매치${schedule.opponentTeam ? ` vs ${schedule.opponentTeam}` : ''}` :
-      schedule.type === "training" ? "연습" : schedule.type
 
   const [year, month, day] = schedule.date.split('-')
   const dateObj = new Date(Number(year), Number(month) - 1, Number(day))
@@ -56,7 +53,6 @@ export const generateKakaoShareText = (schedule: any, isManagerMode: boolean = f
   let text = `[경기 안내]\n`
   text += `📅 일정: ${dateStr} ${schedule.time}\n`
   text += `🏟️ 장소: ${schedule.location || '미정'}\n`
-  text += `⚽ 유형: ${typeLabel}\n`
 
   if (schedule.description) {
     text += `📢 공지: ${schedule.description}\n`

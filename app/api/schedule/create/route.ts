@@ -20,37 +20,15 @@ export async function POST(request: NextRequest) {
       createdBy
     } = body
 
-    // 필수 필드 검증 (title, gatherTime 제거)
-    if (!type || !date || !time || !location || !createdBy) {
+    // 필수 필드 검증 (title, gatherTime, type 제거)
+    if (!date || !time || !location || !createdBy) {
       return NextResponse.json(
         { error: '필수 정보가 누락되었습니다.' },
         { status: 400 }
       )
     }
 
-    // 유형별 추가 필드 검증
-    if (type === "match" && !opponentTeam) {
-      return NextResponse.json(
-        { error: 'A매치의 경우 상대팀명이 필요합니다.' },
-        { status: 400 }
-      )
-    }
 
-    if (type === "training" && !trainingContent) {
-      return NextResponse.json(
-        { error: '연습의 경우 연습 내용이 필요합니다.' },
-        { status: 400 }
-      )
-    }
-
-    // 유효한 일정 유형인지 확인
-    const validTypes = ['internal', 'match', 'training']
-    if (!validTypes.includes(type)) {
-      return NextResponse.json(
-        { error: '유효하지 않은 일정 유형입니다.' },
-        { status: 400 }
-      )
-    }
 
     // 과거 날짜 검증 (한국시간 기준)
     const [year, month, day] = date.split('-')
@@ -83,7 +61,7 @@ export async function POST(request: NextRequest) {
     const newSchedule = await prisma.schedule.create({
       data: {
         title: autoTitle,
-        type,
+        type: "internal",
         matchDate: inputDateTime, // DateTime으로 저장
         startTime: time,
         gatherTime: gatherTime || "",

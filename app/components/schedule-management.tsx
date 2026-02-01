@@ -597,51 +597,6 @@ export function ScheduleManagement({
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="type">경기 유형 *</Label>
-                <Select
-                  value={newSchedule.type}
-                  onValueChange={(value) => setNewSchedule({
-                    ...newSchedule,
-                    type: value,
-                    opponentTeam: "",
-                    trainingContent: ""
-                  })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="internal">자체경기</SelectItem>
-                    <SelectItem value="match">A매치</SelectItem>
-                    <SelectItem value="training">연습</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {newSchedule.type === "match" && (
-                <div className="space-y-2">
-                  <Label htmlFor="opponentTeam">상대팀명 *</Label>
-                  <Input
-                    id="opponentTeam"
-                    value={newSchedule.opponentTeam}
-                    onChange={(e) => setNewSchedule({ ...newSchedule, opponentTeam: e.target.value })}
-                    placeholder="상대팀 이름을 입력하세요"
-                  />
-                </div>
-              )}
-
-              {newSchedule.type === "training" && (
-                <div className="space-y-2">
-                  <Label htmlFor="trainingContent">연습 내용 *</Label>
-                  <Input
-                    id="trainingContent"
-                    value={newSchedule.trainingContent}
-                    onChange={(e) => setNewSchedule({ ...newSchedule, trainingContent: e.target.value })}
-                    placeholder="연습 내용을 입력하세요"
-                  />
-                </div>
-              )}
 
               <div className="space-y-2">
                 <Label>날짜 *</Label>
@@ -778,11 +733,7 @@ export function ScheduleManagement({
                   <div className="text-sm text-blue-700 space-y-1">
                     <div className="flex items-center gap-2">
                       <Target className="h-4 w-4" />
-                      <span className="font-medium">
-                        {newSchedule.type === "internal" ? "자체경기" :
-                          newSchedule.type === "match" ? `vs ${newSchedule.opponentTeam || "상대팀"}` :
-                            `연습 - ${newSchedule.trainingContent || "연습내용"}`}
-                      </span>
+                      <span className="font-medium">자체경기</span>
                     </div>
                     {(() => {
                       try {
@@ -824,8 +775,6 @@ export function ScheduleManagement({
                   isNaN(selectedDate.getTime()) ||
                   !newSchedule.time ||
                   !newSchedule.location ||
-                  (newSchedule.type === "match" && !newSchedule.opponentTeam) ||
-                  (newSchedule.type === "training" && !newSchedule.trainingContent) ||
                   isSubmitting
                 }
               >
@@ -918,10 +867,7 @@ export function ScheduleManagement({
 
                     <div className="flex items-center justify-center">
                       <div className="flex items-center gap-2">
-                        <Badge className={getTypeColor(nextUpcomingSchedule.type)} variant="secondary">
-                          {nextUpcomingSchedule.type === "internal" ? "자체경기" : nextUpcomingSchedule.type === "match" ? `A매치${nextUpcomingSchedule.opponentTeam ? ` vs ${nextUpcomingSchedule.opponentTeam}` : ''}` : "연습"}
-                        </Badge>
-                        {nextUpcomingSchedule.allowGuests && nextUpcomingSchedule.type === "internal" && (
+                        {nextUpcomingSchedule.allowGuests && (
                           <Badge className="bg-yellow-100 text-yellow-800" variant="secondary">
                             게스트허용
                           </Badge>
@@ -978,7 +924,7 @@ export function ScheduleManagement({
                     <div className="space-y-2 pt-1">
                       <div className="flex gap-2 flex-wrap">
                         {/* 게스트 허용 버튼 (총무 전용) */}
-                        {isManagerMode && nextUpcomingSchedule.type === "internal" && (
+                        {isManagerMode && (
                           <Button
                             onClick={async () => {
                               startScheduleUpdate(nextUpcomingSchedule.id)
@@ -1037,8 +983,8 @@ export function ScheduleManagement({
                           </Button>
                         )}
 
-                        {/* 자동 팀편성 버튼 (총무 전용, 내부 경기만) */}
-                        {isManagerMode && nextUpcomingSchedule.type === "internal" && (() => {
+                        {/* 자동 팀편성 버튼 (총무 전용) */}
+                        {isManagerMode && (() => {
                           const [year, month, day] = nextUpcomingSchedule.date.split('-')
                           const targetDate = new Date(Number(year), Number(month) - 1, Number(day))
                           const today = new Date()
