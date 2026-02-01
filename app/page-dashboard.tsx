@@ -37,7 +37,7 @@ const AttendanceStatsView = dynamic(
 // 기본 팀 정보 (고정값)
 const defaultTeamInfo = {
   name: "FC BRO",
-  emblem: "/fc-bro-emblem.jpg",
+  emblem: "/loading_page_main.jpg",
 }
 
 interface DashboardProps {

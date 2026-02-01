@@ -79,7 +79,6 @@ export function ScheduleManagement({
     type: "internal",
     date: "",
     time: "",
-    gatherTime: "",
     location: "",
     description: "",
     opponentTeam: "",
@@ -282,27 +281,12 @@ export function ScheduleManagement({
 
   const timeOptions = generateTimeOptions()
 
-  const calculateGatherTime = (startTime: string): string => {
-    if (!startTime) return ""
-
-    const [hours, minutes] = startTime.split(":").map(Number)
-    let gatherHour = hours
-    let gatherMinute = minutes - 20
-
-    if (gatherMinute < 0) {
-      gatherHour -= 1
-      gatherMinute += 60
-    }
-
-    return `${gatherHour.toString().padStart(2, "0")}:${gatherMinute.toString().padStart(2, "0")}`
-  }
+  // calculateGatherTime 제거됨
 
   const handleStartTimeChange = (time: string) => {
-    const calculatedGatherTime = calculateGatherTime(time)
     setNewSchedule({
       ...newSchedule,
       time,
-      gatherTime: calculatedGatherTime,
     })
   }
 
@@ -331,7 +315,6 @@ export function ScheduleManagement({
         type: newSchedule.type,
         date: newSchedule.date,
         time: newSchedule.time,
-        gatherTime: newSchedule.gatherTime,
         location: newSchedule.location,
         description: newSchedule.description,
         opponentTeam: newSchedule.opponentTeam || null,
@@ -383,7 +366,6 @@ export function ScheduleManagement({
         type: newSchedule.type,
         date: newSchedule.date,
         time: newSchedule.time,
-        gatherTime: newSchedule.gatherTime,
         location: newSchedule.location,
         description: newSchedule.description,
         opponentTeam: newSchedule.opponentTeam || null,
@@ -425,7 +407,6 @@ export function ScheduleManagement({
       type: schedule.type,
       date: schedule.date,
       time: schedule.time,
-      gatherTime: schedule.gatherTime,
       location: schedule.location,
       description: schedule.description || "",
       opponentTeam: schedule.opponentTeam || "",
@@ -589,7 +570,6 @@ export function ScheduleManagement({
       type: "internal",
       date: "",
       time: "",
-      gatherTime: "",
       location: "",
       description: "",
       opponentTeam: "",
@@ -726,16 +706,6 @@ export function ScheduleManagement({
                     </SelectContent>
                   </Select>
                 </div>
-
-                {newSchedule.time && newSchedule.gatherTime && (
-                  <div className="p-3 bg-blue-50 rounded-lg">
-                    <div className="flex items-center gap-2 text-blue-700">
-                      <Users className="h-4 w-4" />
-                      <span className="font-medium">집합 시간: {newSchedule.gatherTime}</span>
-                      <span className="text-sm text-blue-600">(시작 20분 전)</span>
-                    </div>
-                  </div>
-                )}
               </div>
 
               <div className="space-y-2">
@@ -833,12 +803,6 @@ export function ScheduleManagement({
                         시작: {newSchedule.time}
                       </div>
                     )}
-                    {newSchedule.gatherTime && (
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4" />
-                        집합: {newSchedule.gatherTime}
-                      </div>
-                    )}
                     {newSchedule.location && (
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4" />
@@ -877,289 +841,293 @@ export function ScheduleManagement({
             </div>
           </DialogContent>
         </Dialog>
-      )}
+      )
+      }
 
       {/* 일정 추가 버튼 (총무만) */}
-      {isManagerMode && (
-        <div className="flex justify-end mb-4">
-          <Button onClick={() => setIsAddingSchedule(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            일정 추가
-          </Button>
-        </div>
-      )}
+      {
+        isManagerMode && (
+          <div className="flex justify-end mb-4">
+            <Button onClick={() => setIsAddingSchedule(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              일정 추가
+            </Button>
+          </div>
+        )
+      }
 
       {/* 에러 메시지 */}
-      {error && (
-        <div className="text-red-500 text-sm bg-red-50 p-3 rounded-lg">
-          {error}
-        </div>
-      )}
+      {
+        error && (
+          <div className="text-red-500 text-sm bg-red-50 p-3 rounded-lg">
+            {error}
+          </div>
+        )
+      }
 
       {/* 다음 일정 (경기예정 모드에서만 표시) */}
-      {viewMode === 'upcoming' && nextUpcomingSchedule && (
-        <div className="space-y-2">
-          {/* <h3 className="text-lg font-semibold">다음 일정</h3> */}
-          <Card className="border-l-4 border-l-blue-500">
-            {/* <CardHeader>
+      {
+        viewMode === 'upcoming' && nextUpcomingSchedule && (
+          <div className="space-y-2">
+            {/* <h3 className="text-lg font-semibold">다음 일정</h3> */}
+            <Card className="border-l-4 border-l-blue-500">
+              {/* <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                 <CalendarIcon className="h-5 w-5" />
                 다음 경기 정보
                 </CardTitle>
             </CardHeader> */}
-            {isScheduleUpdating(nextUpcomingSchedule.id) ? (
-              <ScheduleSkeleton />
-            ) : (
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  {/* D-Day 표시와 액션 버튼 */}
-                  <div className="flex items-center justify-center gap-3">
-                    <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full font-semibold">
-                      <CalendarIcon className="h-4 w-4" />
-                      {(() => {
-                        const daysLeft = calculateDaysLeft(nextUpcomingSchedule.date)
-                        if (daysLeft === 0) return "오늘 경기!"
-                        if (daysLeft === 1) return "내일 경기!"
-                        if (daysLeft > 0) return `D-${daysLeft}`
-                        return "지난 경기"
-                      })()}
-                    </div>
-                  </div>
-
-                  {/* 일정 기본 정보 */}
-                  <div className="text-center space-y-2">
-                    <h3 className="text-xl font-bold">
-                      {(() => {
-                        // 한국시간으로 저장된 날짜를 그대로 표시
-                        const [year, month, day] = nextUpcomingSchedule.date.split('-')
-                        const date = new Date(Number(year), Number(month) - 1, Number(day))
-                        return date.toLocaleDateString('ko-KR', {
-                          month: 'long',
-                          day: 'numeric',
-                          weekday: 'short'
-                        })
-                      })()} <span >{nextUpcomingSchedule.time}</span>
-                    </h3>
-                    <h3 className="flex gap-2 items-center justify-center text-xl font-bold">
-                      <MapPin className="h-4 w-4" />
-                      {nextUpcomingSchedule.location}
-                    </h3>
-                    <h3 className="flex gap-2 items-center justify-center text-xl font-bold">
-                      <div className="text-red-600 text-muted-foreground">집합 {nextUpcomingSchedule.gatherTime}</div>
-                    </h3>
-                  </div>
-
-                  <div className="flex items-center justify-center">
-                    <div className="flex items-center gap-2">
-                      <Badge className={getTypeColor(nextUpcomingSchedule.type)} variant="secondary">
-                        {nextUpcomingSchedule.type === "internal" ? "자체경기" : nextUpcomingSchedule.type === "match" ? `A매치${nextUpcomingSchedule.opponentTeam ? ` vs ${nextUpcomingSchedule.opponentTeam}` : ''}` : "연습"}
-                      </Badge>
-                      {nextUpcomingSchedule.allowGuests && nextUpcomingSchedule.type === "internal" && (
-                        <Badge className="bg-yellow-100 text-yellow-800" variant="secondary">
-                          게스트허용
-                        </Badge>
-                      )}
-                      {isManagerMode && (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            onClick={() => handleEditSchedule(nextUpcomingSchedule)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => handleDeleteSchedule(nextUpcomingSchedule.id, `${nextUpcomingSchedule.location} ${nextUpcomingSchedule.time}`)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* 설명 */}
-                  {nextUpcomingSchedule.description && (
-                    <p className="text-sm text-muted-foreground text-center">{nextUpcomingSchedule.description}</p>
-                  )}
-
-                  {/* 참석 투표 섹션 (지난 일정이 아니고 사용자가 로그인한 경우) */}
-                  {(() => {
-                    const daysLeft = calculateDaysLeft(nextUpcomingSchedule.date)
-                    const isPastSchedule = daysLeft < 0
-                    return !isPastSchedule && currentUser?.id && (
-                      <div className="pt-4 border-t">
-                        <AttendanceVoting
-                          scheduleId={nextUpcomingSchedule.id}
-                          currentUserId={currentUser.id}
-                          isPastSchedule={isPastSchedule}
-                          allowGuests={nextUpcomingSchedule.allowGuests}
-                          hasTeamFormation={!!nextUpcomingSchedule.teamFormation}
-                          formationConfirmed={nextUpcomingSchedule.formationConfirmed}
-                          isManagerMode={isManagerMode}
-                          onVoteUpdate={() => refreshSchedule(nextUpcomingSchedule.id)}
-                        />
+              {isScheduleUpdating(nextUpcomingSchedule.id) ? (
+                <ScheduleSkeleton />
+              ) : (
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    {/* D-Day 표시와 액션 버튼 */}
+                    <div className="flex items-center justify-center gap-3">
+                      <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full font-semibold">
+                        <CalendarIcon className="h-4 w-4" />
+                        {(() => {
+                          const daysLeft = calculateDaysLeft(nextUpcomingSchedule.date)
+                          if (daysLeft === 0) return "오늘 경기!"
+                          if (daysLeft === 1) return "내일 경기!"
+                          if (daysLeft > 0) return `D-${daysLeft}`
+                          return "지난 경기"
+                        })()}
                       </div>
-                    )
-                  })()}
+                    </div>
 
-                  {/* 액션 버튼들 */}
-                  <div className="space-y-2 pt-1">
-                    <div className="flex gap-2 flex-wrap">
-                      {/* 게스트 허용 버튼 (총무 전용) */}
-                      {isManagerMode && nextUpcomingSchedule.type === "internal" && (
-                        <Button
-                          onClick={async () => {
-                            startScheduleUpdate(nextUpcomingSchedule.id)
-                            try {
-                              const response = await fetch('/api/schedule/toggle-guests', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                  scheduleId: nextUpcomingSchedule.id,
-                                  userId: currentUser?.id,
-                                  allowGuests: !nextUpcomingSchedule.allowGuests
-                                })
-                              })
+                    {/* 일정 기본 정보 */}
+                    <div className="text-center space-y-2">
+                      <h3 className="text-xl font-bold">
+                        {(() => {
+                          // 한국시간으로 저장된 날짜를 그대로 표시
+                          const [year, month, day] = nextUpcomingSchedule.date.split('-')
+                          const date = new Date(Number(year), Number(month) - 1, Number(day))
+                          return date.toLocaleDateString('ko-KR', {
+                            month: 'long',
+                            day: 'numeric',
+                            weekday: 'short'
+                          })
+                        })()} <span >{nextUpcomingSchedule.time}</span>
+                      </h3>
+                      <h3 className="flex gap-2 items-center justify-center text-xl font-bold">
+                        <MapPin className="h-4 w-4" />
+                        {nextUpcomingSchedule.location}
+                      </h3>
+                    </div>
 
-                              if (response.ok) {
-                                // 해당 일정의 게스트 허용 상태만 업데이트 (전체 페이지 리로딩 방지)
-                                await updateScheduleGuestStatus(nextUpcomingSchedule.id)
-                              }
-                            } catch (error) {
-                              console.error('게스트 허용 상태 변경 중 오류:', error)
-                            } finally {
-                              endScheduleUpdate(nextUpcomingSchedule.id)
-                            }
-                          }}
-                          disabled={isScheduleUpdating(nextUpcomingSchedule.id)}
-                          variant={nextUpcomingSchedule.allowGuests ? "destructive" : "outline"}
-                          size="sm"
-                          className={`flex-1 ${nextUpcomingSchedule.allowGuests ? "" : "bg-yellow-400"}`}
-                        >
-                          {isScheduleUpdating(nextUpcomingSchedule.id)
-                            ? "업데이트 중..."
-                            : nextUpcomingSchedule.allowGuests ? "게스트 중단" : "게스트 허용"
-                          }
-                        </Button>
-                      )}
+                    <div className="flex items-center justify-center">
+                      <div className="flex items-center gap-2">
+                        <Badge className={getTypeColor(nextUpcomingSchedule.type)} variant="secondary">
+                          {nextUpcomingSchedule.type === "internal" ? "자체경기" : nextUpcomingSchedule.type === "match" ? `A매치${nextUpcomingSchedule.opponentTeam ? ` vs ${nextUpcomingSchedule.opponentTeam}` : ''}` : "연습"}
+                        </Badge>
+                        {nextUpcomingSchedule.allowGuests && nextUpcomingSchedule.type === "internal" && (
+                          <Badge className="bg-yellow-100 text-yellow-800" variant="secondary">
+                            게스트허용
+                          </Badge>
+                        )}
+                        {isManagerMode && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => handleEditSchedule(nextUpcomingSchedule)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => handleDeleteSchedule(nextUpcomingSchedule.id, `${nextUpcomingSchedule.location} ${nextUpcomingSchedule.time}`)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
 
-                      {/* 공유 버튼 추가 */}
-                      {isManagerMode && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 bg-green-100 text-green-700 border-green-300 hover:bg-green-200"
-                          onClick={async () => {
-                            const text = generateKakaoShareText(nextUpcomingSchedule, isManagerMode)
-                            try {
-                              await navigator.clipboard.writeText(text)
-                              alert("경기 정보가 클립보드에 복사되었습니다.\n카카오톡 채팅창에 붙여넣기(Ctrl+V) 하세요.")
-                            } catch (err) {
-                              console.error('클립보드 복사 실패:', err)
-                              prompt("아래 텍스트를 복사하세요:", text)
-                            }
-                          }}
-                        >
-                          <Share2 className="h-4 w-4 mr-1" />
-                          공유
-                        </Button>
-                      )}
+                    {/* 설명 */}
+                    {nextUpcomingSchedule.description && (
+                      <p className="text-sm text-muted-foreground text-center">{nextUpcomingSchedule.description}</p>
+                    )}
 
-                      {/* 자동 팀편성 버튼 (총무 전용, 내부 경기만) */}
-                      {isManagerMode && nextUpcomingSchedule.type === "internal" && (() => {
-                        const [year, month, day] = nextUpcomingSchedule.date.split('-')
-                        const targetDate = new Date(Number(year), Number(month) - 1, Number(day))
-                        const today = new Date()
-                        today.setHours(0, 0, 0, 0)
-                        const diffTime = targetDate.getTime() - today.getTime()
-                        const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+                    {/* 참석 투표 섹션 (지난 일정이 아니고 사용자가 로그인한 경우) */}
+                    {(() => {
+                      const daysLeft = calculateDaysLeft(nextUpcomingSchedule.date)
+                      const isPastSchedule = daysLeft < 0
+                      return !isPastSchedule && currentUser?.id && (
+                        <div className="pt-4 border-t">
+                          <AttendanceVoting
+                            scheduleId={nextUpcomingSchedule.id}
+                            currentUserId={currentUser.id}
+                            isPastSchedule={isPastSchedule}
+                            allowGuests={nextUpcomingSchedule.allowGuests}
+                            hasTeamFormation={!!nextUpcomingSchedule.teamFormation}
+                            formationConfirmed={nextUpcomingSchedule.formationConfirmed}
+                            isManagerMode={isManagerMode}
+                            onVoteUpdate={() => refreshSchedule(nextUpcomingSchedule.id)}
+                          />
+                        </div>
+                      )
+                    })()}
 
-                        const attendingCount = nextUpcomingSchedule.attendances?.filter((a: any) => a.status === 'ATTENDING').length || 0
-                        const isEnoughMembers = attendingCount >= 10
-                        const isTimeReady = daysLeft <= 2
-                        const isEnabled = isEnoughMembers && isTimeReady && !isScheduleUpdating(nextUpcomingSchedule.id)
-
-                        return (
+                    {/* 액션 버튼들 */}
+                    <div className="space-y-2 pt-1">
+                      <div className="flex gap-2 flex-wrap">
+                        {/* 게스트 허용 버튼 (총무 전용) */}
+                        {isManagerMode && nextUpcomingSchedule.type === "internal" && (
                           <Button
                             onClick={async () => {
-                              if (!confirm('자동 팀편성을 실행하시겠습니까?')) return
-
                               startScheduleUpdate(nextUpcomingSchedule.id)
                               try {
-                                const response = await fetch('/api/schedule/team-formation', {
+                                const response = await fetch('/api/schedule/toggle-guests', {
                                   method: 'POST',
                                   headers: { 'Content-Type': 'application/json' },
                                   body: JSON.stringify({
                                     scheduleId: nextUpcomingSchedule.id,
-                                    userId: currentUser?.id
+                                    userId: currentUser?.id,
+                                    allowGuests: !nextUpcomingSchedule.allowGuests
                                   })
                                 })
 
-                                if (!response.ok) {
-                                  const errorText = await response.text()
-                                  console.error('팀편성 API 오류:', errorText)
-                                  throw new Error('팀편성 API 호출 실패')
-                                }
-
-                                const result = await response.json()
-
-                                if (result.success) {
-                                  alert('팀편성이 완료되었습니다.')
-                                  fetchSchedules()
-                                } else {
-                                  alert(result.error || '팀편성 중 오류가 발생했습니다.')
+                                if (response.ok) {
+                                  // 해당 일정의 게스트 허용 상태만 업데이트 (전체 페이지 리로딩 방지)
+                                  await updateScheduleGuestStatus(nextUpcomingSchedule.id)
                                 }
                               } catch (error) {
-                                console.error('팀편성 처리 중 오류:', error)
-                                alert('팀편성 처리 중 오류가 발생했습니다.')
+                                console.error('게스트 허용 상태 변경 중 오류:', error)
                               } finally {
                                 endScheduleUpdate(nextUpcomingSchedule.id)
                               }
                             }}
-                            disabled={!isEnabled}
-                            variant="default"
+                            disabled={isScheduleUpdating(nextUpcomingSchedule.id)}
+                            variant={nextUpcomingSchedule.allowGuests ? "destructive" : "outline"}
                             size="sm"
-                            className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500"
+                            className={`flex-1 ${nextUpcomingSchedule.allowGuests ? "" : "bg-yellow-400"}`}
                           >
-                            <UsersRound className="h-4 w-4 mr-1" />
-                            {isScheduleUpdating(nextUpcomingSchedule.id) ? "처리 중..." :
-                              !isEnoughMembers ? `팀편성 (${attendingCount}/10명)` :
-                                !isTimeReady ? `팀편성 (D-${daysLeft})` :
-                                  "자동 팀편성"
+                            {isScheduleUpdating(nextUpcomingSchedule.id)
+                              ? "업데이트 중..."
+                              : nextUpcomingSchedule.allowGuests ? "게스트 중단" : "게스트 허용"
                             }
                           </Button>
-                        )
-                      })()}
-                    </div>
-                  </div>
+                        )}
 
-                  {/* 팀편성 결과 표시 - 확정 전에는 총무만 조회 가능 */}
-                  {nextUpcomingSchedule.teamFormation && (isManagerMode || nextUpcomingSchedule.formationConfirmed) && (
-                    <div className="pt-4 border-t">
-                      <TeamFormation
-                        scheduleId={nextUpcomingSchedule.id}
-                        teamFormation={nextUpcomingSchedule.teamFormation}
-                        formationDate={nextUpcomingSchedule.formationDate}
-                        formationConfirmed={nextUpcomingSchedule.formationConfirmed}
-                        isManagerMode={isManagerMode}
-                        currentUserId={currentUser?.id || ''}
-                        onFormationUpdate={fetchSchedules}
-                        onFormationDelete={fetchSchedules}
-                        onFormationConfirm={fetchSchedules}
-                      />
+                        {/* 공유 버튼 추가 */}
+                        {isManagerMode && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 bg-green-100 text-green-700 border-green-300 hover:bg-green-200"
+                            onClick={async () => {
+                              const text = generateKakaoShareText(nextUpcomingSchedule, isManagerMode)
+                              try {
+                                await navigator.clipboard.writeText(text)
+                                alert("경기 정보가 클립보드에 복사되었습니다.\n카카오톡 채팅창에 붙여넣기(Ctrl+V) 하세요.")
+                              } catch (err) {
+                                console.error('클립보드 복사 실패:', err)
+                                prompt("아래 텍스트를 복사하세요:", text)
+                              }
+                            }}
+                          >
+                            <Share2 className="h-4 w-4 mr-1" />
+                            공유
+                          </Button>
+                        )}
+
+                        {/* 자동 팀편성 버튼 (총무 전용, 내부 경기만) */}
+                        {isManagerMode && nextUpcomingSchedule.type === "internal" && (() => {
+                          const [year, month, day] = nextUpcomingSchedule.date.split('-')
+                          const targetDate = new Date(Number(year), Number(month) - 1, Number(day))
+                          const today = new Date()
+                          today.setHours(0, 0, 0, 0)
+                          const diffTime = targetDate.getTime() - today.getTime()
+                          const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+                          const attendingCount = nextUpcomingSchedule.attendances?.filter((a: any) => a.status === 'ATTENDING').length || 0
+                          const isEnoughMembers = attendingCount >= 10
+                          const isTimeReady = daysLeft <= 2
+                          const isEnabled = isEnoughMembers && isTimeReady && !isScheduleUpdating(nextUpcomingSchedule.id)
+
+                          return (
+                            <Button
+                              onClick={async () => {
+                                if (!confirm('자동 팀편성을 실행하시겠습니까?')) return
+
+                                startScheduleUpdate(nextUpcomingSchedule.id)
+                                try {
+                                  const response = await fetch('/api/schedule/team-formation', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      scheduleId: nextUpcomingSchedule.id,
+                                      userId: currentUser?.id
+                                    })
+                                  })
+
+                                  if (!response.ok) {
+                                    const errorText = await response.text()
+                                    console.error('팀편성 API 오류:', errorText)
+                                    throw new Error('팀편성 API 호출 실패')
+                                  }
+
+                                  const result = await response.json()
+
+                                  if (result.success) {
+                                    alert('팀편성이 완료되었습니다.')
+                                    fetchSchedules()
+                                  } else {
+                                    alert(result.error || '팀편성 중 오류가 발생했습니다.')
+                                  }
+                                } catch (error) {
+                                  console.error('팀편성 처리 중 오류:', error)
+                                  alert('팀편성 처리 중 오류가 발생했습니다.')
+                                } finally {
+                                  endScheduleUpdate(nextUpcomingSchedule.id)
+                                }
+                              }}
+                              disabled={!isEnabled}
+                              variant="default"
+                              size="sm"
+                              className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500"
+                            >
+                              <UsersRound className="h-4 w-4 mr-1" />
+                              {isScheduleUpdating(nextUpcomingSchedule.id) ? "처리 중..." :
+                                !isEnoughMembers ? `팀편성 (${attendingCount}/10명)` :
+                                  !isTimeReady ? `팀편성 (D-${daysLeft})` :
+                                    "자동 팀편성"
+                              }
+                            </Button>
+                          )
+                        })()}
+                      </div>
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            )}
-          </Card>
-        </div>
-      )}
+
+                    {/* 팀편성 결과 표시 - 확정 전에는 총무만 조회 가능 */}
+                    {nextUpcomingSchedule.teamFormation && (isManagerMode || nextUpcomingSchedule.formationConfirmed) && (
+                      <div className="pt-4 border-t">
+                        <TeamFormation
+                          scheduleId={nextUpcomingSchedule.id}
+                          teamFormation={nextUpcomingSchedule.teamFormation}
+                          formationDate={nextUpcomingSchedule.formationDate}
+                          formationConfirmed={nextUpcomingSchedule.formationConfirmed}
+                          isManagerMode={isManagerMode}
+                          currentUserId={currentUser?.id || ''}
+                          onFormationUpdate={fetchSchedules}
+                          onFormationDelete={fetchSchedules}
+                          onFormationConfirm={fetchSchedules}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          </div>
+        )
+      }
 
       {/* 일정 목록 - viewMode에 따라 표시 */}
       <div className="space-y-6">

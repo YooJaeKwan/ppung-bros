@@ -20,8 +20,8 @@ export async function POST(request: NextRequest) {
       createdBy
     } = body
 
-    // 필수 필드 검증 (title 제거)
-    if (!type || !date || !time || !gatherTime || !location || !createdBy) {
+    // 필수 필드 검증 (title, gatherTime 제거)
+    if (!type || !date || !time || !location || !createdBy) {
       return NextResponse.json(
         { error: '필수 정보가 누락되었습니다.' },
         { status: 400 }
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
         type,
         matchDate: inputDateTime, // DateTime으로 저장
         startTime: time,
-        gatherTime,
+        gatherTime: gatherTime || "",
         location: location.trim(),
         restTime: Number(restTime),
         description: description.trim() || null,

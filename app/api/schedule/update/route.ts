@@ -20,8 +20,8 @@ export async function PUT(request: NextRequest) {
       userId // 수정 권한 확인용
     } = body
 
-    // 필수 필드 검증
-    if (!scheduleId || !type || !date || !time || !gatherTime || !location || !userId) {
+    // 필수 필드 검증 (gatherTime 제거)
+    if (!scheduleId || !type || !date || !time || !location || !userId) {
       return NextResponse.json(
         { error: '필수 정보가 누락되었습니다.' },
         { status: 400 }
@@ -103,7 +103,7 @@ export async function PUT(request: NextRequest) {
         type,
         matchDate: kstDateTime, // DateTime으로 저장
         startTime: time,
-        gatherTime,
+        gatherTime: gatherTime || "",
         location: location.trim(),
         restTime: Number(restTime),
         description: description.trim() || null,

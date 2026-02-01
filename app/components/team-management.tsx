@@ -826,10 +826,10 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                           </div>
 
                           {/* 최근 참석경기 */}
-                          <div className="flex items-center gap-1.5 col-span-2">
+                          <div className="flex items-center gap-1.5">
                             <TrendingUp className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                             <span className="text-muted-foreground truncate">
-                              최근 참석일: {member.lastAttendedDate || '참석 이력 없음'}
+                              최근 참석일: {member.lastAttendedDate || '없음'}
                             </span>
                           </div>
                         </div>
@@ -1277,10 +1277,10 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                   </div>
 
                   {/* 최근 참석경기 */}
-                  <div className="flex items-center gap-1.5 col-span-2">
+                  <div className="flex items-center gap-1.5">
                     <TrendingUp className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                     <span className="text-muted-foreground truncate">
-                      최근 참석일: {member.lastAttendedDate || '참석 이력 없음'}
+                      최근 참석일: {member.lastAttendedDate || '없음'}
                     </span>
                   </div>
                 </div>

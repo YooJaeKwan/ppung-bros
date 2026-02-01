@@ -213,10 +213,6 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
                                             nextSchedule.type === 'match' ? `A매치${nextSchedule.opponentTeam ? ` vs ${nextSchedule.opponentTeam}` : ''}` : '훈련'}
                                     </Badge>
                                 </div>
-                                <div className="flex items-center gap-1 text-sm font-medium text-red-500">
-                                    <Clock className="h-3.5 w-3.5" />
-                                    <span>집합 {nextSchedule.gatherTime}</span>
-                                </div>
                             </div>
 
                             {nextSchedule.location && (

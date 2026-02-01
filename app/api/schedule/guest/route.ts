@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 
 // 게스트 목록 조회
@@ -25,7 +26,6 @@ export async function GET(request: NextRequest) {
         guestId: true,
         guestName: true,
         guestLevel: true,
-        guestPosition: true,
         invitedByUserId: true,
         status: true,
         createdAt: true,
@@ -47,7 +47,6 @@ export async function GET(request: NextRequest) {
         id: guest.guestId,
         name: guest.guestName,
         level: guest.guestLevel,
-        position: guest.guestPosition,
         status: guest.status,
         invitedBy: guest.user?.realName || guest.user?.nickname || '알 수 없음',
         createdAt: guest.createdAt
@@ -69,7 +68,7 @@ export async function POST(request: NextRequest) {
     const { scheduleId, guestName, guestLevel, guestPosition, invitedByUserId, sameTeamAsInviter } = body
 
     // 필수 필드 확인
-    if (!scheduleId || !guestName || !guestLevel || !guestPosition || !invitedByUserId) {
+    if (!scheduleId || !guestName || !guestLevel || !invitedByUserId) {
       return NextResponse.json(
         { error: '필수 정보가 누락되었습니다.' },
         { status: 400 }
@@ -102,7 +101,6 @@ export async function POST(request: NextRequest) {
         status: 'ATTENDING',
         guestName,
         guestLevel,
-        guestPosition,
         invitedByUserId,
         isGuest: true,
         sameTeamAsInviter: sameTeam
@@ -122,7 +120,7 @@ export async function POST(request: NextRequest) {
         await prisma.schedule.update({
           where: { id: scheduleId },
           data: {
-            teamFormation: null,
+            teamFormation: Prisma.JsonNull,
             formationDate: null,
             formationConfirmed: false
           }
@@ -140,7 +138,6 @@ export async function POST(request: NextRequest) {
         userId: guestId,  // 프론트엔드에서 사용할 ID
         name: guestName,
         level: guestLevel,
-        position: guestPosition,
         invitedBy: inviter.realName || inviter.nickname,
         isGuest: true,
         status: 'attending'
@@ -189,7 +186,7 @@ export async function DELETE(request: NextRequest) {
         await prisma.schedule.update({
           where: { id: scheduleId },
           data: {
-            teamFormation: null,
+            teamFormation: Prisma.JsonNull,
             formationDate: null,
             formationConfirmed: false
           }
