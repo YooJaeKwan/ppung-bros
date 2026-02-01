@@ -19,23 +19,19 @@ export async function POST(request: NextRequest) {
       city
     } = body
 
-    // 필수 필드 검증
-    if (!kakaoId || !realName || !phoneNumber || !birthYear || !mainPosition || !region || !city) {
+    // 필수 필드 검증 (포지션 제외)
+    if (!kakaoId || !realName || !phoneNumber || !birthYear || !region || !city) {
       return NextResponse.json(
         { error: '필수 정보가 누락되었습니다.' },
         { status: 400 }
       )
     }
 
-    // 부포지션 검증
-    if (!Array.isArray(subPositions)) {
-      return NextResponse.json(
-        { error: '부포지션 데이터 형식이 올바르지 않습니다.' },
-        { status: 400 }
-      )
-    }
+    // 포지션 데이터 기본값 처리
+    const finalMainPosition = mainPosition || null
+    const finalSubPositions = Array.isArray(subPositions) ? subPositions : []
 
-    if (subPositions.length > 2) {
+    if (finalSubPositions.length > 2) {
       return NextResponse.json(
         { error: '부포지션은 최대 2개까지 선택 가능합니다.' },
         { status: 400 }
@@ -43,7 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 부포지션에 희망포지션이 포함되어있는지 확인
-    if (subPositions.includes(mainPosition)) {
+    if (finalMainPosition && finalSubPositions.includes(finalMainPosition)) {
       return NextResponse.json(
         { error: '부포지션에는 희망포지션과 다른 포지션을 선택해주세요.' },
         { status: 400 }
@@ -112,8 +108,8 @@ export async function POST(request: NextRequest) {
         realName: realName.trim(),
         phoneNumber,
         birthYear,
-        mainPosition,
-        subPositions,
+        mainPosition: finalMainPosition,
+        subPositions: finalSubPositions,
         region,
         city,
         role: 'MEMBER', // 기본적으로 MEMBER role 부여

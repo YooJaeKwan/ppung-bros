@@ -7,9 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-// import { Checkbox } from "@/components/ui/checkbox" // 더 이상 사용하지 않음
 import { Users, AlertCircle, CheckCircle } from "lucide-react"
-import { regionData, provinceOptions, footOptions } from "@/lib/region-data"
+import { regionData, provinceOptions } from "@/lib/region-data"
 
 interface UserSignupProps {
   kakaoUserInfo: any
@@ -22,55 +21,11 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
     realName: "",
     phoneNumber: "",
     birthYear: "",
-    mainPosition: "",
-    subPosition1: "",
-    subPosition2: "",
     region: "",
     city: ""
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
-
-  // 포지션 옵션 - 카테고리별 분류
-  const positionCategories = {
-    attacker: {
-      name: "공격수",
-      positions: [
-        { value: "ST", label: "ST (스트라이커)" },
-        { value: "CF", label: "CF (센터 포워드)" },
-        { value: "SS", label: "SS (세컨드 스트라이커)" },
-        { value: "LWF", label: "LWF (좌측 윙 포워드)" },
-        { value: "RWF", label: "RWF (우측 윙 포워드)" }
-      ]
-    },
-    midfielder: {
-      name: "미드필더",
-      positions: [
-        { value: "AMC", label: "CAM (공격형 중앙 미드필더)" },
-        { value: "MC", label: "CM (중앙 미드필더)" },
-        { value: "DM", label: "CDM (수비형 미드필더)" }
-      ]
-    },
-    defender: {
-      name: "수비수",
-      positions: [
-        { value: "CB", label: "CB (센터백)" },
-        { value: "RB", label: "RB (오른쪽 풀백)" },
-        { value: "LB", label: "LB (왼쪽 풀백)" },
-        { value: "LRB", label: "LRB (양쪽 풀백 가능)" },
-        { value: "LRCB", label: "LRCB (멀티 수비수)" }
-      ]
-    },
-    goalkeeper: {
-      name: "골키퍼",
-      positions: [
-        { value: "GK", label: "GK (골키퍼)" }
-      ]
-    }
-  }
-
-  // 모든 포지션을 플랫하게 만든 배열 (검증 및 선택용)
-  const allPositions = Object.values(positionCategories).flatMap(category => category.positions)
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -97,39 +52,12 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
       newErrors.birthYear = "출생연도를 선택해주세요."
     }
 
-    // 주포지션 검증
-    if (!formData.mainPosition) {
-      newErrors.mainPosition = "주포지션을 선택해주세요."
-    } else if (!allPositions.find(pos => pos.value === formData.mainPosition)) {
-      newErrors.mainPosition = "유효하지 않은 포지션입니다."
-    }
-
-    // 부포지션 검증 (선택사항)
-    const selectedSubPositions = [formData.subPosition1, formData.subPosition2].filter(pos => pos !== "")
-
-    // 유효한 포지션인지 확인
-    if (selectedSubPositions.some(pos => !allPositions.find(p => p.value === pos))) {
-      newErrors.subPositions = "유효하지 않은 부포지션이 포함되어 있습니다."
-    }
-
-    // 희망포지션과 중복 확인
-    if (selectedSubPositions.includes(formData.mainPosition)) {
-      newErrors.subPositions = "부포지션에는 주포지션과 다른 포지션을 선택해주세요."
-    }
-
-    // 부포지션 간 중복 확인
-    if (formData.subPosition1 && formData.subPosition2 && formData.subPosition1 === formData.subPosition2) {
-      newErrors.subPositions = "부포지션은 서로 다른 포지션을 선택해주세요."
-    }
-
     // 거주 지역 검증
     if (!formData.region) {
       newErrors.region = "시도를 선택해주세요."
     } else if (!formData.city) {
       newErrors.city = "구/시를 선택해주세요."
     }
-
-    // 등번호 및 주발 검증 제거됨
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -157,14 +85,6 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
     handleInputChange('phoneNumber', numbersOnly)
   }
 
-  // 등번호 입력 핸들러 제거됨
-
-
-  // 부포지션 선택에서 이미 선택된 포지션들 제외
-  const getAvailableSubPositions = (excludePositions: string[] = []) => {
-    return allPositions.filter(pos => !excludePositions.includes(pos.value))
-  }
-
   const handleSubmit = async () => {
     if (!validateForm()) {
       return
@@ -184,8 +104,6 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
         realName: formData.realName.trim(),
         phoneNumber: formData.phoneNumber,
         birthYear: formData.birthYear,
-        mainPosition: formData.mainPosition,
-        subPositions: [formData.subPosition1, formData.subPosition2].filter(pos => pos !== ""),
         region: formData.region,
         city: formData.city
       }
@@ -305,140 +223,8 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
             </div>
           </div>
 
-          {/* 주포지션 선택 */}
-          <div className="space-y-2">
-            <Label>주포지션 *</Label>
-            <Select
-              value={formData.mainPosition}
-              onValueChange={(value) => handleInputChange('mainPosition', value)}
-            >
-              <SelectTrigger className={errors.mainPosition ? "border-red-500" : ""}>
-                <SelectValue placeholder="주포지션을 선택해주세요" />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(positionCategories).map(([categoryKey, category]) => (
-                  <div key={categoryKey}>
-                    <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
-                      {category.name}
-                    </div>
-                    {category.positions.map((position) => (
-                      <SelectItem key={position.value} value={position.value}>
-                        {position.label}
-                      </SelectItem>
-                    ))}
-                  </div>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.mainPosition && (
-              <p className="text-sm text-red-500">{errors.mainPosition}</p>
-            )}
-          </div>
-
-          {/* 부포지션 선택 */}
-          <div className="space-y-3">
-            {/* <Label>부포지션 (선택사항, 최대 2개)</Label> */}
-            {/* <div className="text-xs text-muted-foreground">
-              주포지션 외에 소화 가능한 포지션을 선택해주세요.
-            </div> */}
-
-            {/* 첫 번째 부포지션 */}
-            <div className="space-y-2">
-              <Label>부포지션 1 (선택사항)</Label>
-              <Select
-                value={formData.subPosition1 || "none"}
-                onValueChange={(value) => handleInputChange('subPosition1', value === "none" ? "" : value)}
-              >
-                <SelectTrigger className={errors.subPositions ? "border-red-500" : ""}>
-                  <SelectValue placeholder="첫 번째 부포지션 선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  {/* 선택없음 옵션 */}
-                  <SelectItem value="none">
-                    <span className="text-muted-foreground">선택없음</span>
-                  </SelectItem>
-
-                  {Object.entries(positionCategories).map(([categoryKey, category]) => (
-                    <div key={categoryKey}>
-                      <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
-                        {category.name}
-                      </div>
-                      {category.positions
-                        .filter(pos => pos.value !== formData.mainPosition && pos.value !== formData.subPosition2)
-                        .map((position) => (
-                          <SelectItem key={position.value} value={position.value}>
-                            {position.label}
-                          </SelectItem>
-                        ))}
-                    </div>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* 두 번째 부포지션 */}
-            <div className="space-y-2">
-              <Label>부포지션 2 (선택사항)</Label>
-              <Select
-                value={formData.subPosition2 || "none"}
-                onValueChange={(value) => handleInputChange('subPosition2', value === "none" ? "" : value)}
-              >
-                <SelectTrigger className={errors.subPositions ? "border-red-500" : ""}>
-                  <SelectValue placeholder="두 번째 부포지션 선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  {/* 선택없음 옵션 */}
-                  <SelectItem value="none">
-                    <span className="text-muted-foreground">선택없음</span>
-                  </SelectItem>
-
-                  {Object.entries(positionCategories).map(([categoryKey, category]) => (
-                    <div key={categoryKey}>
-                      <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
-                        {category.name}
-                      </div>
-                      {category.positions
-                        .filter(pos => pos.value !== formData.mainPosition && pos.value !== formData.subPosition1)
-                        .map((position) => (
-                          <SelectItem key={position.value} value={position.value}>
-                            {position.label}
-                          </SelectItem>
-                        ))}
-                    </div>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* 선택된 부포지션 표시 */}
-            {/* {(formData.subPosition1 || formData.subPosition2) && (
-              <div className="text-sm text-blue-600">
-                선택된 부포지션: {[formData.subPosition1, formData.subPosition2].filter(pos => pos !== "").join(', ')}
-                <button 
-                  type="button"
-                  onClick={() => {
-                    setFormData(prev => ({
-                      ...prev,
-                      subPosition1: "",
-                      subPosition2: ""
-                    }))
-                  }}
-                  className="ml-2 text-xs text-red-500 hover:text-red-700 underline"
-                >
-                  초기화
-                </button>
-              </div>
-            )} */}
-
-            {errors.subPositions && (
-              <p className="text-sm text-red-500">{errors.subPositions}</p>
-            )}
-          </div>
-
           {/* 거주 지역 선택 (2단계) */}
           <div className="space-y-3">
-            {/* <Label>거주 지역 *</Label> */}
-
             {/* 시도 선택 */}
             <div className="space-y-2">
               <Label>지역</Label>
@@ -489,16 +275,7 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
                 )}
               </div>
             )}
-
-            {/* 선택된 지역 표시 */}
-            {/* {formData.region && formData.city && (
-              <div className="text-sm text-blue-600">
-                선택된 지역: {provinceOptions.find(p => p.value === formData.region)?.label} {formData.city}
-              </div>
-            )} */}
           </div>
-
-          {/* 주발 및 등번호 입력 영역 제거됨 */}
 
           {/* 버튼 영역 */}
           <div className="flex flex-col space-y-2 pt-4">
