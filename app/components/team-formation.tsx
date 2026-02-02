@@ -198,9 +198,9 @@ export function TeamFormation({
         </p>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className={`grid grid-cols-1 ${orangeTeam.length > 0 ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4`}>
         {renderTeamCard('블루팀', blueTeam, stats.blue, 'border-blue-300 bg-blue-50/30', 'bg-blue-500')}
-        {renderTeamCard('오렌지팀', orangeTeam, stats.orange, 'border-orange-300 bg-orange-50/30', 'bg-orange-500')}
+        {orangeTeam.length > 0 && renderTeamCard('오렌지팀', orangeTeam, stats.orange, 'border-orange-300 bg-orange-50/30', 'bg-orange-500')}
         {renderTeamCard('화이트팀', whiteTeam, stats.white, 'border-gray-200 bg-gray-50/30', 'bg-white border')}
       </div>
     </div>

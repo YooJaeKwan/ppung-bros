@@ -74,6 +74,7 @@ export function ScheduleManagement({
   const [availableLocations, setAvailableLocations] = useState<any[]>([])
   const [isLoadingLocations, setIsLoadingLocations] = useState(false)
   const [updatingSchedules, setUpdatingSchedules] = useState<Set<string>>(new Set())
+  const [teamCount, setTeamCount] = useState(3)
 
   const [newSchedule, setNewSchedule] = useState({
     type: "internal",
@@ -1020,54 +1021,74 @@ export function ScheduleManagement({
                           const isEnabled = isEnoughMembers && isTimeReady && !isScheduleUpdating(nextUpcomingSchedule.id)
 
                           return (
-                            <Button
-                              onClick={async () => {
-                                if (!confirm('자동 팀편성을 실행하시겠습니까?')) return
+                            <div className="flex flex-col gap-2">
+                              <div className="flex items-center justify-center gap-2 mb-1">
+                                <span className="text-xs font-medium text-gray-500">팀 개수:</span>
+                                <div className="flex bg-gray-100 rounded-lg p-0.5">
+                                  <button
+                                    onClick={() => setTeamCount(2)}
+                                    className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${teamCount === 2 ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                  >
+                                    2팀
+                                  </button>
+                                  <button
+                                    onClick={() => setTeamCount(3)}
+                                    className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${teamCount === 3 ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                  >
+                                    3팀
+                                  </button>
+                                </div>
+                              </div>
+                              <Button
+                                onClick={async () => {
+                                  if (!confirm(`${teamCount}팀으로 자동 팀편성을 실행하시겠습니까?`)) return
 
-                                startScheduleUpdate(nextUpcomingSchedule.id)
-                                try {
-                                  const response = await fetch('/api/schedule/team-formation', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                      scheduleId: nextUpcomingSchedule.id,
-                                      userId: currentUser?.id
+                                  startScheduleUpdate(nextUpcomingSchedule.id)
+                                  try {
+                                    const response = await fetch('/api/schedule/team-formation', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                        scheduleId: nextUpcomingSchedule.id,
+                                        userId: currentUser?.id,
+                                        teamCount: teamCount
+                                      })
                                     })
-                                  })
 
-                                  if (!response.ok) {
-                                    const errorText = await response.text()
-                                    console.error('팀편성 API 오류:', errorText)
-                                    throw new Error('팀편성 API 호출 실패')
+                                    if (!response.ok) {
+                                      const errorText = await response.text()
+                                      console.error('팀편성 API 오류:', errorText)
+                                      throw new Error('팀편성 API 호출 실패')
+                                    }
+
+                                    const result = await response.json()
+
+                                    if (result.success) {
+                                      alert('팀편성이 완료되었습니다.')
+                                      fetchSchedules()
+                                    } else {
+                                      alert(result.error || '팀편성 중 오류가 발생했습니다.')
+                                    }
+                                  } catch (error) {
+                                    console.error('팀편성 처리 중 오류:', error)
+                                    alert('팀편성 처리 중 오류가 발생했습니다.')
+                                  } finally {
+                                    endScheduleUpdate(nextUpcomingSchedule.id)
                                   }
-
-                                  const result = await response.json()
-
-                                  if (result.success) {
-                                    alert('팀편성이 완료되었습니다.')
-                                    fetchSchedules()
-                                  } else {
-                                    alert(result.error || '팀편성 중 오류가 발생했습니다.')
-                                  }
-                                } catch (error) {
-                                  console.error('팀편성 처리 중 오류:', error)
-                                  alert('팀편성 처리 중 오류가 발생했습니다.')
-                                } finally {
-                                  endScheduleUpdate(nextUpcomingSchedule.id)
+                                }}
+                                disabled={!isEnabled}
+                                variant="default"
+                                size="sm"
+                                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500"
+                              >
+                                <UsersRound className="h-4 w-4 mr-1" />
+                                {isScheduleUpdating(nextUpcomingSchedule.id) ? "처리 중..." :
+                                  !isEnoughMembers ? `팀편성 (${attendingCount}/10명)` :
+                                    !isTimeReady ? `팀편성 (D-${daysLeft})` :
+                                      `${teamCount}팀 자동 편성`
                                 }
-                              }}
-                              disabled={!isEnabled}
-                              variant="default"
-                              size="sm"
-                              className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500"
-                            >
-                              <UsersRound className="h-4 w-4 mr-1" />
-                              {isScheduleUpdating(nextUpcomingSchedule.id) ? "처리 중..." :
-                                !isEnoughMembers ? `팀편성 (${attendingCount}/10명)` :
-                                  !isTimeReady ? `팀편성 (D-${daysLeft})` :
-                                    "자동 팀편성"
-                              }
-                            </Button>
+                              </Button>
+                            </div>
                           )
                         })()}
                       </div>

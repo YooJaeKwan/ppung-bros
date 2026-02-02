@@ -7,7 +7,7 @@ import { formTeams, getPositionCategory, getLevelCategory, getLevelLabelForForma
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { scheduleId, userId } = body
+    const { scheduleId, userId, teamCount = 3 } = body
 
     if (!scheduleId || !userId) {
       return NextResponse.json(
@@ -65,9 +65,9 @@ export async function POST(request: NextRequest) {
     }
 
     // 참석자 필터링 (ATTENDING 상태만)
-    const attendingPlayers = schedule.attendances
-      .filter(att => att.status === 'ATTENDING')
-      .map(att => {
+    const attendingPlayers = (schedule.attendances as any[])
+      .filter((att: any) => att.status === 'ATTENDING')
+      .map((att: any) => {
         if (att.isGuest) {
           // 게스트 - 주포지션에 따라 분류되지만 게스트 카테고리로 표시
           const guestPosition = att.guestPosition || null
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 팀 편성 실행
-    const formation = formTeams(attendingPlayers)
+    const formation = formTeams(attendingPlayers, teamCount)
 
     // 팀편성 결과 저장
     await prisma.schedule.update({
