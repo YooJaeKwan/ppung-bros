@@ -222,8 +222,8 @@ export function ScheduleManagement({
     return updatingSchedules.has(scheduleId)
   }
 
-  // 스켈레톤 컴포넌트
-  const ScheduleSkeleton = () => (
+  // 스켈레톤 컴포넌트 (개별 항목 업데이트용)
+  const ScheduleItemSkeleton = () => (
     <div className="space-y-4 p-6">
       <div className="flex items-center justify-center">
         <div className="flex items-center gap-2 bg-gray-100 text-gray-500 px-4 py-2 rounded-full">
@@ -554,14 +554,36 @@ export function ScheduleManagement({
 
   // 포지션 색상 함수 제거됨 (풋살 전환)
 
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="text-center">
-          <p className="text-muted-foreground">일정 정보를 불러오는 중...</p>
-        </div>
+  const ScheduleSkeleton = () => (
+    <div className="space-y-6">
+      <div className="flex justify-end mb-4">
+        <Skeleton className="h-10 w-24" />
       </div>
-    )
+      <div className="space-y-2">
+        <Card className="border-l-4 border-l-gray-200">
+          <CardContent className="p-6 space-y-4">
+            <div className="flex justify-center"><Skeleton className="h-8 w-32 rounded-full" /></div>
+            <div className="space-y-2 flex flex-col items-center">
+              <Skeleton className="h-8 w-64" />
+              <Skeleton className="h-6 w-48" />
+            </div>
+            <div className="pt-4 border-t flex gap-2">
+              <Skeleton className="h-10 flex-1" />
+              <Skeleton className="h-10 flex-1" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      <div className="space-y-4">
+        {[1, 2, 3].map(i => (
+          <Card key={i} className="p-4"><Skeleton className="h-20 w-full" /></Card>
+        ))}
+      </div>
+    </div>
+  )
+
+  if (isLoading) {
+    return <ScheduleSkeleton />
   }
 
   // resetScheduleForm 함수
@@ -827,7 +849,7 @@ export function ScheduleManagement({
                 </CardTitle>
             </CardHeader> */}
               {isScheduleUpdating(nextUpcomingSchedule.id) ? (
-                <ScheduleSkeleton />
+                <ScheduleItemSkeleton />
               ) : (
                 <CardContent className="p-6">
                   <div className="space-y-4">

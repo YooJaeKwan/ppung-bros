@@ -69,15 +69,15 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
     setIsManagerMode(user?.role === 'ADMIN')
   }, [user?.role])
 
-  const [activeTab, setActiveTab] = useState("dashboard")
+  const [activeTab, setActiveTab] = useState("schedule")
   // 사용자 role 기반으로 관리자 모드 결정 (DB에서 ADMIN 권한 확인)
   const [isManagerMode, setIsManagerMode] = useState(user?.role === 'ADMIN')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
 
   const tabItems = [
+    { value: "schedule", label: "경기일정", icon: Calendar },
     { value: "dashboard", label: "대시보드", icon: BarChart3 },
-    { value: "schedule", label: "경기예정", icon: Calendar },
     ...(isManagerMode ? [{ value: "attendance", label: "출석부", icon: ClipboardList }] : []),
     { value: "team", label: "팀멤버", icon: Users },
     { value: "profile", label: "내 정보", icon: User },
