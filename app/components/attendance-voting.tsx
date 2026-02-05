@@ -177,6 +177,7 @@ export function AttendanceVoting({
         await fetchAttendance()
         onVoteUpdate()
       } else {
+        // 인원 제한 등 서버 에러 메시지 표시
         alert(result.error || '투표 처리 중 오류가 발생했습니다.')
       }
     } catch (error) {

@@ -19,6 +19,20 @@ export function calculateDaysLeft(dateString: string): number {
   return diffDays
 }
 
+// 경기 시작 여부 확인 (현재 시간이 경기 시작 시간보다 이후인지)
+export function isScheduleStarted(dateString: string, timeString: string): boolean {
+  try {
+    const [year, month, day] = dateString.split('-')
+    const [hour, minute] = timeString.split(':')
+    const matchDate = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute))
+    const now = new Date()
+    return now >= matchDate
+  } catch (error) {
+    console.error('날짜 파싱 오류:', error)
+    return false
+  }
+}
+
 // 포지션 카테고리 순서 (공격수 -> 미드필더 -> 수비수 -> 골키퍼)
 export const getPositionOrder = (position: string) => {
   const pos = position.toUpperCase()

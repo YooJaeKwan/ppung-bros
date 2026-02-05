@@ -104,6 +104,9 @@ model Schedule {
   // 게스트 허용 여부
   allowGuests     Boolean   @default(false)
 
+  // 참석 인원 제한 (선착순)
+  maxAttendees    Int?      // null이면 제한 없음
+
   // 비정규화된 참석 통계 (성능 최적화)
   attendingCount    Int @default(0)
   notAttendingCount Int @default(0)

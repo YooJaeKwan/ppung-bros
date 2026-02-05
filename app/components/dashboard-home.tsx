@@ -10,7 +10,7 @@ import { ScheduleComments } from "./schedule-comments"
 import { TeamFormation } from "./team-formation"
 import { getLevelLabel } from '@/lib/level-system'
 import { BadgeNotification } from './badge-notification'
-import { sortByPosition } from '@/lib/utils'
+import { sortByPosition, isScheduleStarted } from '@/lib/utils'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -239,7 +239,7 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
                                         scheduleId={nextSchedule.id}
                                         currentUserId={currentUser.id}
                                         isManagerMode={currentUser.role === 'ADMIN'}
-                                        isPastSchedule={calculateDaysLeft(nextSchedule.date) < 0}
+                                        isPastSchedule={isScheduleStarted(nextSchedule.date, nextSchedule.time)}
                                         allowGuests={nextSchedule.allowGuests}
                                         hasTeamFormation={!!nextSchedule.teamFormation}
                                         formationConfirmed={nextSchedule.formationConfirmed}

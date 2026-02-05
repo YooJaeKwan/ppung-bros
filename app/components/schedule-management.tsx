@@ -22,7 +22,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarIcon, Clock, MapPin, Users, Plus, Edit, Trash2, Timer, Coffee, Target, UserPlus, UsersRound, Share2 } from "lucide-react"
 import { format } from "date-fns"
 import { ko } from "date-fns/locale"
-import { cn, generateKakaoShareText } from "@/lib/utils"
+import { cn, generateKakaoShareText, isScheduleStarted } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 import ScheduleCard from "./schedule-card"
 // MatchResultDialog 제거됨
@@ -81,6 +81,7 @@ export function ScheduleManagement({
     date: "",
     time: "",
     location: "",
+    maxAttendees: "unlimited",
     description: "",
     opponentTeam: "",
     trainingContent: "",
@@ -89,12 +90,12 @@ export function ScheduleManagement({
   useEffect(() => {
     fetchSchedules()
     fetchAvailableLocations()
-  }, [])
+  }, [viewMode])
 
   const fetchSchedules = async () => {
     try {
       setIsLoading(true)
-      const response = await fetch('/api/schedule/list')
+      const response = await fetch(`/api/schedule/list?status=${viewMode}&userId=${currentUser?.id}`)
       const result = await response.json()
 
       if (!response.ok) {
@@ -138,7 +139,7 @@ export function ScheduleManagement({
   const fetchSchedulesSilently = async () => {
     try {
       // 로딩 상태 변경 없이 데이터만 갱신
-      const response = await fetch('/api/schedule/list')
+      const response = await fetch(`/api/schedule/list?status=${viewMode}&userId=${currentUser?.id}`)
       const result = await response.json()
       if (response.ok) {
         setSchedules(result.schedules)
@@ -185,7 +186,7 @@ export function ScheduleManagement({
   const updateScheduleGuestStatus = async (scheduleId: string) => {
     startScheduleUpdate(scheduleId)
     try {
-      const response = await fetch(`/api/schedule/list`)
+      const response = await fetch(`/api/schedule/list?status=${viewMode}&userId=${currentUser?.id}`)
       const result = await response.json()
 
       if (response.ok) {
@@ -320,6 +321,7 @@ export function ScheduleManagement({
         description: newSchedule.description,
         opponentTeam: newSchedule.opponentTeam || null,
         trainingContent: newSchedule.trainingContent || null,
+        maxAttendees: newSchedule.maxAttendees && newSchedule.maxAttendees !== "unlimited" ? parseInt(newSchedule.maxAttendees) : null,
         createdBy: currentUser.id
       }
 
@@ -371,6 +373,7 @@ export function ScheduleManagement({
         description: newSchedule.description,
         opponentTeam: newSchedule.opponentTeam || null,
         trainingContent: newSchedule.trainingContent || null,
+        maxAttendees: newSchedule.maxAttendees && newSchedule.maxAttendees !== "unlimited" ? parseInt(newSchedule.maxAttendees) : null,
         userId: currentUser.id
       }
 
@@ -409,6 +412,7 @@ export function ScheduleManagement({
       date: schedule.date,
       time: schedule.time,
       location: schedule.location,
+      maxAttendees: schedule.maxAttendees ? String(schedule.maxAttendees) : "unlimited",
       description: schedule.description || "",
       opponentTeam: schedule.opponentTeam || "",
       trainingContent: schedule.trainingContent || "",
@@ -594,6 +598,7 @@ export function ScheduleManagement({
       date: "",
       time: "",
       location: "",
+      maxAttendees: "unlimited",
       description: "",
       opponentTeam: "",
       trainingContent: "",
@@ -737,6 +742,26 @@ export function ScheduleManagement({
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="maxAttendees">인원 제한 (선택)</Label>
+                <Select
+                  value={newSchedule.maxAttendees}
+                  onValueChange={(value) => setNewSchedule({ ...newSchedule, maxAttendees: value })}
+                >
+                  <SelectTrigger id="maxAttendees">
+                    <SelectValue placeholder="인원 제한 없음" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unlimited">제한 없음</SelectItem>
+                    {[10, 12, 14, 15, 16, 18, 20, 22, 24].map((num) => (
+                      <SelectItem key={num} value={String(num)}>
+                        {num}명
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* 쿼터 및 휴식 시간 설정 제거됨 */}
 
               <div className="space-y-2">
@@ -777,15 +802,22 @@ export function ScheduleManagement({
                         시작: {newSchedule.time}
                       </div>
                     )}
-                    {newSchedule.location && (
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4" />
-                        장소: {newSchedule.location}
-                      </div>
-                    )}
+                      {newSchedule.location && (
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4" />
+                          장소: {newSchedule.location}
+                        </div>
+                      )}
+                      {newSchedule.maxAttendees && (
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4" />
+                          인원: {newSchedule.maxAttendees}명 제한
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={resetScheduleForm}>
@@ -926,7 +958,8 @@ export function ScheduleManagement({
                     {/* 참석 투표 섹션 (지난 일정이 아니고 사용자가 로그인한 경우) */}
                     {(() => {
                       const daysLeft = calculateDaysLeft(nextUpcomingSchedule.date)
-                      const isPastSchedule = daysLeft < 0
+                      const isStarted = isScheduleStarted(nextUpcomingSchedule.date, nextUpcomingSchedule.time)
+                      const isPastSchedule = isStarted
                       return !isPastSchedule && currentUser?.id && (
                         <div className="pt-4 border-t">
                           <AttendanceVoting
@@ -1020,74 +1053,75 @@ export function ScheduleManagement({
                           const isTimeReady = daysLeft <= 2
                           const isEnabled = isEnoughMembers && isTimeReady && !isScheduleUpdating(nextUpcomingSchedule.id)
 
+                          const handleFormation = async (count: number) => {
+                            if (!confirm(`${count}팀으로 자동 팀편성을 실행하시겠습니까?`)) return
+
+                            startScheduleUpdate(nextUpcomingSchedule.id)
+                            try {
+                              const response = await fetch('/api/schedule/team-formation', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  scheduleId: nextUpcomingSchedule.id,
+                                  userId: currentUser?.id,
+                                  teamCount: count
+                                })
+                              })
+
+                              if (!response.ok) {
+                                const errorText = await response.text()
+                                console.error('팀편성 API 오류:', errorText)
+                                throw new Error('팀편성 API 호출 실패')
+                              }
+
+                              const result = await response.json()
+
+                              if (result.success) {
+                                alert('팀편성이 완료되었습니다.')
+                                fetchSchedules()
+                              } else {
+                                alert(result.error || '팀편성 중 오류가 발생했습니다.')
+                              }
+                            } catch (error) {
+                              console.error('팀편성 처리 중 오류:', error)
+                              alert('팀편성 처리 중 오류가 발생했습니다.')
+                            } finally {
+                              endScheduleUpdate(nextUpcomingSchedule.id)
+                            }
+                          }
+
                           return (
-                            <div className="flex flex-col gap-2">
-                              <div className="flex items-center justify-center gap-2 mb-1">
-                                <span className="text-xs font-medium text-gray-500">팀 개수:</span>
-                                <div className="flex bg-gray-100 rounded-lg p-0.5">
-                                  <button
-                                    onClick={() => setTeamCount(2)}
-                                    className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${teamCount === 2 ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                                  >
-                                    2팀
-                                  </button>
-                                  <button
-                                    onClick={() => setTeamCount(3)}
-                                    className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${teamCount === 3 ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                                  >
-                                    3팀
-                                  </button>
-                                </div>
-                              </div>
-                              <Button
-                                onClick={async () => {
-                                  if (!confirm(`${teamCount}팀으로 자동 팀편성을 실행하시겠습니까?`)) return
-
-                                  startScheduleUpdate(nextUpcomingSchedule.id)
-                                  try {
-                                    const response = await fetch('/api/schedule/team-formation', {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({
-                                        scheduleId: nextUpcomingSchedule.id,
-                                        userId: currentUser?.id,
-                                        teamCount: teamCount
-                                      })
-                                    })
-
-                                    if (!response.ok) {
-                                      const errorText = await response.text()
-                                      console.error('팀편성 API 오류:', errorText)
-                                      throw new Error('팀편성 API 호출 실패')
-                                    }
-
-                                    const result = await response.json()
-
-                                    if (result.success) {
-                                      alert('팀편성이 완료되었습니다.')
-                                      fetchSchedules()
-                                    } else {
-                                      alert(result.error || '팀편성 중 오류가 발생했습니다.')
-                                    }
-                                  } catch (error) {
-                                    console.error('팀편성 처리 중 오류:', error)
-                                    alert('팀편성 처리 중 오류가 발생했습니다.')
-                                  } finally {
-                                    endScheduleUpdate(nextUpcomingSchedule.id)
+                            <div className="flex flex-col gap-2 w-full">
+                              <div className="grid grid-cols-2 gap-2">
+                                <Button
+                                  onClick={() => handleFormation(2)}
+                                  disabled={!isEnabled}
+                                  variant="default"
+                                  size="sm"
+                                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500"
+                                >
+                                  <UsersRound className="h-4 w-4 mr-1" />
+                                  {isScheduleUpdating(nextUpcomingSchedule.id) ? "처리 중..." :
+                                    !isEnoughMembers ? `2팀 (${attendingCount}/10명)` :
+                                      !isTimeReady ? `2팀 (D-${daysLeft})` :
+                                        "2팀 자동 편성"
                                   }
-                                }}
-                                disabled={!isEnabled}
-                                variant="default"
-                                size="sm"
-                                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500"
-                              >
-                                <UsersRound className="h-4 w-4 mr-1" />
-                                {isScheduleUpdating(nextUpcomingSchedule.id) ? "처리 중..." :
-                                  !isEnoughMembers ? `팀편성 (${attendingCount}/10명)` :
-                                    !isTimeReady ? `팀편성 (D-${daysLeft})` :
-                                      `${teamCount}팀 자동 편성`
-                                }
-                              </Button>
+                                </Button>
+                                <Button
+                                  onClick={() => handleFormation(3)}
+                                  disabled={!isEnabled}
+                                  variant="default"
+                                  size="sm"
+                                  className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:text-gray-500"
+                                >
+                                  <UsersRound className="h-4 w-4 mr-1" />
+                                  {isScheduleUpdating(nextUpcomingSchedule.id) ? "처리 중..." :
+                                    !isEnoughMembers ? `3팀 (${attendingCount}/10명)` :
+                                      !isTimeReady ? `3팀 (D-${daysLeft})` :
+                                        "3팀 자동 편성"
+                                  }
+                                </Button>
+                              </div>
                             </div>
                           )
                         })()}

@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CalendarIcon, MapPinIcon, UsersIcon, ClockIcon, X, Check, UserPlus, UserMinus, Edit, Trash2, Trophy, ChevronDown, ChevronUp, Share2 } from 'lucide-react'
-import { calculateDaysLeft, generateKakaoShareText } from '@/lib/utils'
+import { calculateDaysLeft, generateKakaoShareText, isScheduleStarted } from '@/lib/utils'
 import { AttendanceVoting } from './attendance-voting'
 import { ScheduleComments } from './schedule-comments'
 import {
@@ -68,6 +68,8 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
     return { attending, notAttending, pending, total, percentage }
   }
 
+  // 인원 제한 관련 계산 제거됨 (아래로 이동)
+
   // 사용자 참석 상태 확인
   const getUserAttendanceStatus = (schedule: any) => {
     if (!currentUser?.id || !schedule.attendees) return null
@@ -109,10 +111,14 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
     }
   }
 
-  const stats = getAttendanceStats(schedule.attendees)
+  const stats = schedule.attendanceStats || getAttendanceStats(schedule.attendees)
   const daysLeft = calculateDaysLeft(schedule.date)
-  const isPastSchedule = daysLeft < 0
+  const isStarted = isScheduleStarted(schedule.date, schedule.time)
+  const isPastSchedule = isStarted // daysLeft < 0 로직 대신 정확한 시간 체크 사용
   const userStatus = getUserAttendanceStatus(schedule)
+
+  const isFull = schedule.maxAttendees && stats.attending >= schedule.maxAttendees
+  const remainingSpots = schedule.maxAttendees ? Math.max(0, schedule.maxAttendees - stats.attending) : null
 
   // 경기 결과 확인 로직 제거됨
 
@@ -228,7 +234,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                 scheduleId={schedule.id}
                 currentUserId={currentUser.id}
                 isPastSchedule={isPastSchedule}
-                allowGuests={false}
+                allowGuests={schedule.allowGuests}
                 hasTeamFormation={!!schedule.teamFormation}
                 formationConfirmed={schedule.formationConfirmed}
                 isManagerMode={isManagerMode}
@@ -245,6 +251,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                   invitedBy: att.invitedBy
                 }))}
                 initialStats={stats}
+                initialMyStatus={schedule.myAttendance}
                 compact={true}
               />
             </div>
@@ -299,6 +306,15 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
               {/* Badges */}
               <div className="flex flex-col items-end gap-2">
                 <div className="flex gap-1">
+                  {/* 인원 제한 뱃지 */}
+                  {schedule.maxAttendees && !isPastSchedule && (
+                    <Badge variant="outline" className={`${isFull ? 'bg-red-50 text-red-600 border-red-200' : 'bg-blue-50 text-blue-600 border-blue-200'}`}>
+                      {isFull ? '마감됨' : `잔여 ${remainingSpots}명`}
+                      <span className="ml-1 text-xs opacity-70">
+                         / {schedule.maxAttendees}명
+                      </span>
+                    </Badge>
+                  )}
                   {isPastSchedule && (
                     <Badge variant="outline" className="text-gray-500 border-gray-300">
                       종료
@@ -374,6 +390,13 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                 )
               )}
 
+              {/* 인원 마감 메시지 */}
+              {isFull && !isPastSchedule && userStatus !== 'attending' && (
+                 <div className="text-sm text-red-600 font-medium text-center bg-red-50 p-2 rounded-md">
+                   선착순 마감되었습니다. (총 {schedule.maxAttendees}명)
+                 </div>
+              )}
+
               {/* 경기 결과 입력 버튼 제거됨 */}
 
               {/* 참석 투표 (지난 경기가 아니거나, 지난 경기여도 결과가 없을 때 보여줄 수 있음 - 정책상 지난 경기는 투표 마감) */}
@@ -383,7 +406,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                     scheduleId={schedule.id}
                     currentUserId={currentUser.id}
                     isPastSchedule={isPastSchedule}
-                    allowGuests={false}
+                    allowGuests={schedule.allowGuests}
                     hasTeamFormation={!!schedule.teamFormation}
                     formationConfirmed={schedule.formationConfirmed}
                     isManagerMode={isManagerMode}
@@ -400,6 +423,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                       invitedBy: att.invitedBy
                     }))}
                     initialStats={stats}
+                    initialMyStatus={schedule.myAttendance}
                   />
                 </div>
               )}

@@ -40,6 +40,31 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (status === 'ATTENDING' && schedule.maxAttendees) {
+      const currentAttendeesCount = await prisma.scheduleAttendance.count({
+        where: {
+          scheduleId,
+          status: 'ATTENDING'
+        }
+      })
+
+      const myAttendance = await prisma.scheduleAttendance.findUnique({
+        where: {
+          scheduleId_userId: {
+            scheduleId,
+            userId
+          }
+        }
+      })
+
+      if (currentAttendeesCount >= schedule.maxAttendees && myAttendance?.status !== 'ATTENDING') {
+         return NextResponse.json(
+          { error: `선착순 마감되었습니다. (제한 인원: ${schedule.maxAttendees}명)` },
+          { status: 400 }
+        )
+      }
+    }
+
     // 사용자 존재 확인
     const user = await prisma.user.findUnique({
       where: { id: userId }

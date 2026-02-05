@@ -3,12 +3,34 @@ import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic' // API 캐싱 방지
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    console.log('일정 목록 조회 요청')
+    const { searchParams } = new URL(request.url)
+    const status = searchParams.get('status')
+    const userId = searchParams.get('userId')
 
-    // 모든 일정 조회 (최신순)
+    console.log(`일정 목록 조회 요청 (status: ${status || 'all'}, userId: ${userId})`)
+
+    const now = new Date()
+    now.setHours(0, 0, 0, 0)
+
+    let dateFilter: any = {}
+    if (status === 'upcoming') {
+      dateFilter = {
+        matchDate: {
+          gte: now
+        }
+      }
+    } else if (status === 'past') {
+      dateFilter = {
+        matchDate: {
+          lt: now
+        }
+      }
+    }
+
     const schedules = await prisma.schedule.findMany({
+      where: dateFilter,
       include: {
         creator: {
           select: {
@@ -49,115 +71,90 @@ export async function GET() {
       }
     })
 
-    // 임시 능력치 생성 함수 (레벨 정보 포함)
-    const addTempRating = (attendee: any) => {
-      const tempRating = Math.random() * 2 + 6 // 6.0-8.0 사이 랜덤
-      // 게스트인 경우 이미 level이 포함되어 있음
-      if (attendee.isGuest) {
-        return {
-          ...attendee,
-          rating: Number(tempRating.toFixed(1))
-        }
-      }
-      // 일반 사용자의 경우
-      const user = allUsers.find(u => u.id === attendee.userId)
-      return {
-        ...attendee,
-        rating: Number(tempRating.toFixed(1)),
-        level: attendee.level || user?.level || 1
-      }
-    }
-
-    // 클라이언트에 전송할 데이터 구성
     const formattedSchedules = schedules.map(schedule => {
-      // 참석자 정보 구성 (실제 투표한 사용자만)
       const attendees = schedule.attendances.map(attendance => {
-        // 게스트인 경우
         if (attendance.isGuest) {
           return {
-            name: attendance.guestName || '게스트',
             status: attendance.status.toLowerCase(),
             userId: attendance.guestId || attendance.userId,
-            level: attendance.guestLevel || 7,  // 게스트 레벨 추가
             isGuest: true
           }
         }
-        // 일반 사용자인 경우
         return {
-          name: attendance.user?.realName || attendance.user?.nickname || '이름 없음',
           status: attendance.status.toLowerCase(),
           userId: attendance.user?.id || attendance.userId,
           isGuest: false
         }
       })
 
-      // 1. 활성 회원 (투표함 또는 미정)
       const activeUserAttendees = allUsers.map(user => {
         const existingAttendance = attendees.find(a => a.userId === user.id && !a.isGuest)
         if (existingAttendance) {
           return existingAttendance
         }
-
         return {
-          name: user.realName || user.nickname || '이름 없음',
           status: 'pending',
           userId: user.id,
           isGuest: false
         }
       })
 
-      // 2. 비활성 회원 중 투표한 사람 (투표함)
-      const inactiveUserAttendees = attendees.filter(a =>
-        !a.isGuest && !allUsers.some(u => u.id === a.userId)
+      const otherAttendees = attendees.filter(a =>
+        a.isGuest || (a.userId && !allUsers.some(u => u.id === a.userId))
       )
 
-      // 3. 게스트 (투표함)
-      const guestAttendees = attendees.filter((a: any) => a.isGuest)
+      const finalAttendeesForStats = [...activeUserAttendees, ...otherAttendees]
 
-      const finalAttendees = [...activeUserAttendees, ...inactiveUserAttendees, ...guestAttendees]
-
-      // 실시간 통계 계산
       const attendanceStats = {
         attending: 0,
         notAttending: 0,
         pending: 0
       }
 
-      finalAttendees.forEach(a => {
+      finalAttendeesForStats.forEach(a => {
         if (a.status === 'attending') attendanceStats.attending++
         else if (a.status === 'not_attending') attendanceStats.notAttending++
         else if (a.status === 'pending') attendanceStats.pending++
       })
+
+      let myAttendance = 'pending'
+      if (userId) {
+        const myRecord = finalAttendeesForStats.find(a => !a.isGuest && a.userId === userId)
+        if (myRecord) {
+          myAttendance = myRecord.status
+        }
+      }
 
       return {
         id: schedule.id,
         title: schedule.title,
         type: schedule.type,
         date: (() => {
-          // 한국시간으로 저장된 DateTime을 한국시간 기준 날짜 문자열로 변환
           const kstDate = new Date(schedule.matchDate.getTime() + (9 * 60 * 60 * 1000))
           return kstDate.toISOString().split('T')[0]
         })(),
         time: schedule.startTime,
         gatherTime: schedule.gatherTime,
         location: schedule.location,
+        maxAttendees: schedule.maxAttendees,
         restTime: schedule.restTime,
         description: schedule.description,
         opponentTeam: schedule.opponentTeam,
         trainingContent: schedule.trainingContent,
-        status: schedule.status.toLowerCase(), // SCHEDULED -> scheduled
-        // 경기 결과 필드 추가
-        ourScore: schedule.ourScore,
-        opponentScore: schedule.opponentScore,
-        mvpUserId: schedule.mvpUserId,
-        matchSummary: schedule.matchSummary,
-        attendees: finalAttendees.map(addTempRating),
-        attendanceStats, // 실시간 계산된 통계 추가
-        attendances: schedule.attendances, // MVP 조회를 위한 참석 정보
-        teamFormation: schedule.teamFormation, // 팀편성 결과 포함
+        status: schedule.status.toLowerCase(),
+        ourScore: (schedule as any).ourScore,
+        opponentScore: (schedule as any).opponentScore,
+        mvpUserId: (schedule as any).mvpUserId,
+        matchSummary: (schedule as any).matchSummary,
+        
+        attendanceStats, 
+        myAttendance,
+        
+        attendances: schedule.attendances,
+        teamFormation: schedule.teamFormation,
         formationDate: schedule.formationDate?.toISOString() || null,
-        formationConfirmed: schedule.formationConfirmed || false, // 팀편성 확정 상태
-        allowGuests: schedule.allowGuests || false, // 게스트 허용 상태
+        formationConfirmed: schedule.formationConfirmed || false,
+        allowGuests: schedule.allowGuests || false,
         createdBy: {
           id: schedule.creator.id,
           name: schedule.creator.realName || schedule.creator.nickname

@@ -141,6 +141,7 @@ export async function GET(request: NextRequest) {
         // KST 기준 날짜 변환 (UTC+9)
         date: new Date(nextSchedule.matchDate.getTime() + 9 * 60 * 60 * 1000).toISOString().split('T')[0],
         time: nextSchedule.startTime,
+        maxAttendees: nextSchedule.maxAttendees,
         // 현재 사용자의 참석 상태
         myAttendance: myAttendance?.status || 'PENDING',
         // 실시간 계산된 통계 사용
