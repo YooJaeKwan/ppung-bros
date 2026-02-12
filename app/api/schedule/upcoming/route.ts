@@ -12,14 +12,13 @@ export async function GET(request: NextRequest) {
 
         console.log(`다가오는 일정 조회 요청 (limit: ${limit})`)
 
-        // 현재 날짜 이후의 일정만 조회
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
+        // 현재 시간 이후의 일정만 조회
+        const now = new Date()
 
         const schedules = await prisma.schedule.findMany({
             where: {
                 matchDate: {
-                    gte: today
+                    gte: now
                 }
             },
             include: {

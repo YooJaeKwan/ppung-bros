@@ -13,7 +13,6 @@ export async function GET(request: NextRequest) {
     }
 
     const now = new Date()
-    now.setHours(0, 0, 0, 0)
 
     // 1. 활성 회원 수 조회 (미응답 계산용)
     const activeUserCountRequest = prisma.user.count({
@@ -21,6 +20,7 @@ export async function GET(request: NextRequest) {
     })
 
     // 2. 다음 일정 (가장 가까운 미래 일정 1개) - 실시간 통계 계산을 위해 전체 참석자 조회
+    // matchDate가 현재 시간보다 크거나 같은 첫 번째 일정을 가져옴
     const nextScheduleRequest = prisma.schedule.findFirst({
       where: {
         matchDate: {
@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
     })
 
     // 3. 최근 경기 (과거 일정 3개)
+    // matchDate가 현재 시간보다 작은 일정 중 최근 3개를 가져옴
     const recentMatchesRequest = prisma.schedule.findMany({
       where: {
         matchDate: {

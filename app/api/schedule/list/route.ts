@@ -12,7 +12,6 @@ export async function GET(request: NextRequest) {
     console.log(`일정 목록 조회 요청 (status: ${status || 'all'}, userId: ${userId})`)
 
     const now = new Date()
-    now.setHours(0, 0, 0, 0)
 
     let dateFilter: any = {}
     if (status === 'upcoming') {
@@ -146,10 +145,10 @@ export async function GET(request: NextRequest) {
         opponentScore: (schedule as any).opponentScore,
         mvpUserId: (schedule as any).mvpUserId,
         matchSummary: (schedule as any).matchSummary,
-        
-        attendanceStats, 
+
+        attendanceStats,
         myAttendance,
-        
+
         attendances: schedule.attendances,
         teamFormation: schedule.teamFormation,
         formationDate: schedule.formationDate?.toISOString() || null,
