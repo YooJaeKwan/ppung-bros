@@ -69,6 +69,19 @@ function shuffle<T>(array: T[]): T[] {
   return shuffled
 }
 
+// 팀 통계 계산 함수 (프론트엔드 수동 편성 시에도 사용)
+export function calculateTeamStats(team: any[]) {
+  if (!team || team.length === 0) return { count: 0, averageScore: 0 }
+  const totalScore = team.reduce((sum, p) =>
+    sum + (p.isGuest ? getGuestLevelScore(p.guestLevel) : getPlayerLevelScore(p.level)), 0
+  )
+  return {
+    count: team.length,
+    averageScore: Number((totalScore / team.length).toFixed(2))
+  }
+}
+
+
 // 팀 편성 함수 (2팀 또는 3팀 지원)
 export function formTeams(players: any[], teamCount: number = 3): {
   blueTeam: any[],
@@ -176,31 +189,19 @@ export function formTeams(players: any[], teamCount: number = 3): {
       break
     }
   }
-
   // 통계 계산
-  const calculateStats = (team: any[]) => {
-    if (!team || team.length === 0) return { count: 0, averageScore: 0 }
-    const totalScore = team.reduce((sum, p) =>
-      sum + (p.isGuest ? getGuestLevelScore(p.guestLevel) : getPlayerLevelScore(p.level)), 0
-    )
-    return {
-      count: team.length,
-      averageScore: Number((totalScore / team.length).toFixed(2))
-    }
-  }
-
   const result: any = {
     blueTeam: teams.blue,
     whiteTeam: teams.white,
     stats: {
-      blue: calculateStats(teams.blue),
-      white: calculateStats(teams.white)
+      blue: calculateTeamStats(teams.blue),
+      white: calculateTeamStats(teams.white)
     }
   }
 
   if (teamCount === 3) {
     result.orangeTeam = teams.orange
-    result.stats.orange = calculateStats(teams.orange)
+    result.stats.orange = calculateTeamStats(teams.orange)
   }
 
   return result

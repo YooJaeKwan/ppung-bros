@@ -1,10 +1,12 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Trash2 } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Trash2, Edit, Save, X } from 'lucide-react'
+import { calculateTeamStats } from '@/lib/team-formation' // For recalculating stats
 
 interface TeamFormationProps {
   scheduleId: string
@@ -29,7 +31,76 @@ export function TeamFormation({
   onFormationDelete,
   onFormationConfirm
 }: TeamFormationProps) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [editedFormation, setEditedFormation] = useState<any>(null)
+  const [isSaving, setIsSaving] = useState(false)
+
   if (!teamFormation) return null
+
+  const handleEditClick = () => {
+    // Deep copy current formation to start editing
+    setEditedFormation(JSON.parse(JSON.stringify(teamFormation)))
+    setIsEditing(true)
+  }
+
+  const handleCancelEdit = () => {
+    setIsEditing(false)
+    setEditedFormation(null)
+  }
+
+  const handleSaveEdit = async () => {
+    setIsSaving(true)
+    try {
+      const response = await fetch('/api/schedule/team-formation', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scheduleId,
+          userId: currentUserId,
+          teamFormation: editedFormation
+        })
+      })
+
+      const result = await response.json()
+      if (response.ok && result.success) {
+        onFormationUpdate()
+        setIsEditing(false)
+        setEditedFormation(null)
+      } else {
+        alert(result.error || '팀편성 수정 중 오류가 발생했습니다.')
+      }
+    } catch (error) {
+      console.error('팀편성 수정 오류:', error)
+      alert('팀편성 수정 중 오류가 발생했습니다.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleMemberMove = (memberId: string, currentTeam: string, newTeam: string) => {
+    if (currentTeam === newTeam) return
+
+    const newFormation = { ...editedFormation }
+
+    // Find member
+    const teamMap: { [key: string]: string } = { blue: 'blueTeam', orange: 'orangeTeam', white: 'whiteTeam' }
+    const currentTeamKey = teamMap[currentTeam]
+    const newTeamKey = teamMap[newTeam]
+
+    if (!newFormation[currentTeamKey] || !newFormation[newTeamKey]) return
+
+    const memberIndex = newFormation[currentTeamKey].findIndex((m: any) => (m.userId || m.id) === memberId)
+    if (memberIndex === -1) return
+
+    const [member] = newFormation[currentTeamKey].splice(memberIndex, 1)
+    newFormation[newTeamKey].push(member)
+
+    // Recalculate stats
+    newFormation.stats[currentTeam] = calculateTeamStats(newFormation[currentTeamKey])
+    newFormation.stats[newTeam] = calculateTeamStats(newFormation[newTeamKey])
+
+    setEditedFormation(newFormation)
+  }
 
   const handleConfirm = async () => {
     if (!confirm('팀편성을 확정하시겠습니까? 확정 후에는 모든 팀원이 볼 수 있습니다.')) return
@@ -83,10 +154,11 @@ export function TeamFormation({
     }
   }
 
-  const blueTeam = teamFormation.blueTeam || []
-  const orangeTeam = teamFormation.orangeTeam || []
-  const whiteTeam = teamFormation.whiteTeam || []
-  const stats = teamFormation.stats || {}
+  const currentFormation = isEditing ? editedFormation : teamFormation
+  const blueTeam = currentFormation?.blueTeam || []
+  const orangeTeam = currentFormation?.orangeTeam || []
+  const whiteTeam = currentFormation?.whiteTeam || []
+  const stats = currentFormation?.stats || {}
 
   const groupMembers = (team: any[]) => {
     const grouped: { [key: string]: any[] } = {
@@ -109,7 +181,7 @@ export function TeamFormation({
     return grouped
   }
 
-  const renderTeamCard = (teamName: string, players: any[], teamStats: any, colorClass: string, dotColor: string) => {
+  const renderTeamCard = (teamId: string, teamName: string, players: any[], teamStats: any, colorClass: string, dotColor: string) => {
     const grouped = groupMembers(players)
 
     return (
@@ -142,14 +214,29 @@ export function TeamFormation({
                       {category} ({list.length})
                     </div>
                     {list.map((player: any) => (
-                      <div key={player.userId} className="flex items-center gap-2 py-1 rounded">
-                        <div className="flex-1 min-w-0 text-left">
-                          <p className="text-sm font-medium truncate">
+                      <div key={player.userId || player.id} className="flex items-center gap-2 py-1 rounded">
+                        <div className="flex-1 min-w-0 text-left flex items-center">
+                          <p className={`text-sm font-medium truncate ${isEditing ? 'mr-2' : ''}`}>
                             {player.name}
                             {player.isGuest && player.invitedByName && (
                               <span className="text-gray-400 text-xs ml-1">({player.invitedByName} 지인)</span>
                             )}
                           </p>
+                          {isEditing && (
+                            <Select
+                              value={teamId}
+                              onValueChange={(newTeam) => handleMemberMove(player.userId || player.id, teamId, newTeam)}
+                            >
+                              <SelectTrigger className="w-[90px] h-7 text-xs ml-auto shrink-0 bg-white">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="blue">블루팀</SelectItem>
+                                {orangeTeam.length > 0 && <SelectItem value="orange">오렌지팀</SelectItem>}
+                                <SelectItem value="white">화이트팀</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -167,7 +254,7 @@ export function TeamFormation({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h3 className="text-lg font-semibold">팀편성 결과</h3>
-          {formationConfirmed && (
+          {formationConfirmed && !isEditing && (
             <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
               확정됨
             </Badge>
@@ -175,33 +262,52 @@ export function TeamFormation({
         </div>
         {isManagerMode && (
           <div className="flex gap-2">
-            {!formationConfirmed && (
-              <Button onClick={handleConfirm} size="sm" variant="default">
-                확정
-              </Button>
+            {isEditing ? (
+              <>
+                <Button onClick={handleSaveEdit} disabled={isSaving} size="sm" variant="default" className="bg-blue-600 hover:bg-blue-700 h-8">
+                  {isSaving ? "저장 중..." : <><Save className="h-4 w-4 mr-1" />저장</>}
+                </Button>
+                <Button onClick={handleCancelEdit} disabled={isSaving} size="sm" variant="outline" className="h-8">
+                  <X className="h-4 w-4 mr-1" />취소
+                </Button>
+              </>
+            ) : (
+              <>
+                {!formationConfirmed && (
+                  <>
+                    <Button onClick={handleEditClick} size="sm" variant="outline" className="h-8">
+                      <Edit className="h-4 w-4 mr-1" />수동 편성
+                    </Button>
+                    <Button onClick={handleConfirm} size="sm" variant="default" className="h-8">
+                      확정
+                    </Button>
+                  </>
+                )}
+                <Button
+                  onClick={handleDelete}
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  title="팀편성 삭제"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </>
             )}
-            <Button
-              onClick={handleDelete}
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
           </div>
         )}
       </div>
 
-      {formationDate && (
+      {formationDate && !isEditing && (
         <p className="text-xs text-gray-500 text-left">
           편성 일시: {new Date(formationDate).toLocaleString('ko-KR')}
         </p>
       )}
 
       <div className={`grid grid-cols-1 ${orangeTeam.length > 0 ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4`}>
-        {renderTeamCard('블루팀', blueTeam, stats.blue, 'border-blue-300 bg-blue-50/30', 'bg-blue-500')}
-        {orangeTeam.length > 0 && renderTeamCard('오렌지팀', orangeTeam, stats.orange, 'border-orange-300 bg-orange-50/30', 'bg-orange-500')}
-        {renderTeamCard('화이트팀', whiteTeam, stats.white, 'border-gray-200 bg-gray-50/30', 'bg-white border')}
+        {renderTeamCard('blue', '블루팀', blueTeam, stats.blue, 'border-blue-300 bg-blue-50/30', 'bg-blue-500')}
+        {orangeTeam.length > 0 && renderTeamCard('orange', '오렌지팀', orangeTeam, stats.orange, 'border-orange-300 bg-orange-50/30', 'bg-orange-500')}
+        {renderTeamCard('white', '화이트팀', whiteTeam, stats.white, 'border-gray-200 bg-gray-50/30', 'bg-white border')}
       </div>
     </div>
   )

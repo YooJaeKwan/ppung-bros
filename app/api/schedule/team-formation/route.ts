@@ -249,3 +249,52 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
+// 수동 팀편성 업데이트
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { scheduleId, userId, teamFormation } = body
+
+    if (!scheduleId || !userId || !teamFormation) {
+      return NextResponse.json(
+        { error: '필수 정보가 누락되었습니다.' },
+        { status: 400 }
+      )
+    }
+
+    // 사용자 권한 확인 (총무만 가능)
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    })
+
+    if (!user || user.role !== 'ADMIN') {
+      return NextResponse.json(
+        { error: '팀편성 수정은 총무만 가능합니다.' },
+        { status: 403 }
+      )
+    }
+
+    // 팀편성 결과 저장
+    await prisma.schedule.update({
+      where: { id: scheduleId },
+      data: {
+        teamFormation: teamFormation as any,
+        formationDate: new Date()
+      }
+    })
+
+    return NextResponse.json({
+      success: true,
+      formation: teamFormation
+    })
+  } catch (error) {
+    console.error('팀편성 수정 오류:', error)
+    return NextResponse.json(
+      { error: '팀편성 수정 중 오류가 발생했습니다.' },
+      { status: 500 }
+    )
+  }
+}
+
+
