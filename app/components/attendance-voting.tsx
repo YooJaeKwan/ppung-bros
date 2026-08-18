@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Check, X, Clock, UserPlus, Trash2 } from 'lucide-react'
+import { Check, X, Clock, UserPlus, Trash2, ListOrdered } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -28,16 +28,18 @@ interface AttendanceVotingProps {
   hasTeamFormation?: boolean
   formationConfirmed?: boolean
   isManagerMode?: boolean
+  maxAttendees?: number | null
   onVoteUpdate: () => void
   // Performance optimization: pre-fetched data from parent
   initialAttendees?: Attendee[]
   initialStats?: AttendanceStats
-  initialMyStatus?: 'attending' | 'not_attending' | 'pending'
+  initialMyStatus?: 'attending' | 'not_attending' | 'waiting' | 'pending'
 }
 
 interface AttendanceStats {
   attending: number
   notAttending: number
+  waiting: number
   pending: number
   total: number
 }
@@ -45,7 +47,7 @@ interface AttendanceStats {
 interface Attendee {
   userId: string
   name: string
-  status: 'attending' | 'not_attending' | 'pending'
+  status: 'attending' | 'not_attending' | 'waiting' | 'pending'
   profileImage?: string | null
   isGuest?: boolean
   invitedBy?: string
@@ -60,6 +62,7 @@ export function AttendanceVoting({
   hasTeamFormation = false,
   formationConfirmed = false,
   isManagerMode = false,
+  maxAttendees = null,
   onVoteUpdate,
   initialAttendees,
   initialStats,
@@ -67,7 +70,7 @@ export function AttendanceVoting({
   compact = false
 }: AttendanceVotingProps) {
   // Initialize state from props if provided (performance optimization)
-  const getInitialMyStatus = (): 'attending' | 'not_attending' | 'pending' => {
+  const getInitialMyStatus = (): 'attending' | 'not_attending' | 'waiting' | 'pending' => {
     // First check initialMyStatus prop (from dashboard)
     if (initialMyStatus) {
       return initialMyStatus
@@ -80,23 +83,26 @@ export function AttendanceVoting({
     return 'pending'
   }
 
-  const [myStatus, setMyStatus] = useState<'attending' | 'not_attending' | 'pending'>(getInitialMyStatus)
+  const [myStatus, setMyStatus] = useState<'attending' | 'not_attending' | 'waiting' | 'pending'>(getInitialMyStatus)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [stats, setStats] = useState<AttendanceStats>(initialStats || {
     attending: 0,
     notAttending: 0,
+    waiting: 0,
     pending: 0,
     total: 0
   })
   const [attendees, setAttendees] = useState<Attendee[]>(initialAttendees || [])
   const [isLoading, setIsLoading] = useState(!initialAttendees && !initialStats)
-  const [detailDialogType, setDetailDialogType] = useState<'attending' | 'not_attending' | 'pending' | null>(null)
+  const [detailDialogType, setDetailDialogType] = useState<'attending' | 'not_attending' | 'waiting' | 'pending' | null>(null)
   const [isDialogLoading, setIsDialogLoading] = useState(false)
   const [isGuestDialogOpen, setIsGuestDialogOpen] = useState(false)
   const [guestName, setGuestName] = useState('')
   const [guestLevel, setGuestLevel] = useState<string>('')
   const [isAddingGuest, setIsAddingGuest] = useState(false)
   const [sameTeamAsInviter, setSameTeamAsInviter] = useState(false)
+
+  const isFull = maxAttendees ? stats.attending >= maxAttendees : false
 
   // 투표 현황 조회
   const fetchAttendance = async () => {
@@ -149,7 +155,7 @@ export function AttendanceVoting({
     }
   }, [detailDialogType, attendees.length, scheduleId])
 
-  const handleVote = async (status: 'ATTENDING' | 'NOT_ATTENDING') => {
+  const handleVote = async (status: 'ATTENDING' | 'NOT_ATTENDING' | 'WAITING') => {
     if (isSubmitting || isPastSchedule) return
 
     if (hasTeamFormation) {
@@ -173,7 +179,7 @@ export function AttendanceVoting({
       const result = await response.json()
 
       if (response.ok && result.success) {
-        setMyStatus(status.toLowerCase() as 'attending' | 'not_attending')
+        setMyStatus(status.toLowerCase() as 'attending' | 'not_attending' | 'waiting')
         await fetchAttendance()
         onVoteUpdate()
       } else {
@@ -288,6 +294,7 @@ export function AttendanceVoting({
     switch (status) {
       case 'attending': return 'bg-green-100 text-green-700 border-green-300'
       case 'not_attending': return 'bg-red-100 text-red-700 border-red-300'
+      case 'waiting': return 'bg-yellow-100 text-yellow-700 border-yellow-300'
       case 'pending': return 'bg-gray-100 text-gray-700 border-gray-300'
       default: return 'bg-gray-100 text-gray-700 border-gray-300'
     }
@@ -297,6 +304,7 @@ export function AttendanceVoting({
     switch (status) {
       case 'attending': return <Check className="h-4 w-4" />
       case 'not_attending': return <X className="h-4 w-4" />
+      case 'waiting': return <ListOrdered className="h-4 w-4" />
       case 'pending': return <Clock className="h-4 w-4" />
       default: return <Clock className="h-4 w-4" />
     }
@@ -306,6 +314,7 @@ export function AttendanceVoting({
     switch (status) {
       case 'attending': return '참석'
       case 'not_attending': return '불참'
+      case 'waiting': return '웨이팅'
       case 'pending': return '미응답'
       default: return '미응답'
     }
@@ -382,6 +391,25 @@ export function AttendanceVoting({
           </div>
         </DialogContent>
       </Dialog>
+      <Dialog open={detailDialogType === 'waiting'} onOpenChange={(open) => setDetailDialogType(open ? 'waiting' : null)}>
+        <DialogContent className="max-w-md" onClick={(e) => e.stopPropagation()}>
+          <DialogHeader><DialogTitle>웨이팅 인원</DialogTitle><DialogDescription>참석을 대기 중인 멤버 목록입니다. (순위 표시)</DialogDescription></DialogHeader>
+          <div className="max-h-[400px] overflow-y-auto space-y-2 pt-2">
+            {isDialogLoading ? <p className="text-center text-gray-500 py-4">로딩 중...</p> : attendees.filter(a => a.status === 'waiting').length === 0 ? <p className="text-center text-gray-500 py-4">웨이팅 인원이 없습니다.</p> :
+              attendees.filter(a => a.status === 'waiting').sort((a, b) => new Date(a.updatedAt || 0).getTime() - new Date(b.updatedAt || 0).getTime()).map((attendee, index) => (
+                <div key={attendee.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
+                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-yellow-100 text-yellow-700 font-bold text-xs">
+                    {index + 1}
+                  </div>
+                  <Avatar className="h-8 w-8"><AvatarImage src={attendee.profileImage || undefined} /><AvatarFallback>{attendee.name[0]}</AvatarFallback></Avatar>
+                  <div className="flex-1"><p className="text-sm font-medium">{attendee.name}</p></div>
+                  {isManagerMode && <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => handleDeleteAttendance(attendee)} title="삭제"><Trash2 className="h-3.5 w-3.5" /></Button>}
+                </div>
+              ))
+            }
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   )
 
@@ -391,16 +419,29 @@ export function AttendanceVoting({
     return (
       <div className="space-y-2">
         <div className="flex gap-2">
-          <Button
-            onClick={(e) => { e.stopPropagation(); handleVote('ATTENDING'); }}
-            disabled={isSubmitting || myStatus === 'attending' || formationConfirmed}
-            variant={myStatus === 'attending' ? 'default' : 'outline'}
-            className={`flex-1 h-8 text-xs ${myStatus === 'attending' ? 'bg-green-600 hover:bg-green-700 text-white' : 'hover:bg-green-50 hover:text-green-700'} ${formationConfirmed ? 'opacity-50 cursor-not-allowed' : ''}`}
-            size="sm"
-          >
-            <Check className="h-3 w-3 mr-1" />
-            참석
-          </Button>
+          {isFull && myStatus !== 'attending' ? (
+            <Button
+              onClick={(e) => { e.stopPropagation(); handleVote('WAITING'); }}
+              disabled={isSubmitting || myStatus === 'waiting' || formationConfirmed}
+              variant={myStatus === 'waiting' ? 'default' : 'outline'}
+              className={`flex-1 h-8 text-xs ${myStatus === 'waiting' ? 'bg-yellow-500 hover:bg-yellow-600 text-white' : 'hover:bg-yellow-50 hover:text-yellow-700'} ${formationConfirmed ? 'opacity-50 cursor-not-allowed' : ''}`}
+              size="sm"
+            >
+              <ListOrdered className="h-3 w-3 mr-1" />
+              웨이팅
+            </Button>
+          ) : (
+            <Button
+              onClick={(e) => { e.stopPropagation(); handleVote('ATTENDING'); }}
+              disabled={isSubmitting || myStatus === 'attending' || formationConfirmed || isFull}
+              variant={myStatus === 'attending' ? 'default' : 'outline'}
+              className={`flex-1 h-8 text-xs ${myStatus === 'attending' ? 'bg-green-600 hover:bg-green-700 text-white' : 'hover:bg-green-50 hover:text-green-700'} ${formationConfirmed ? 'opacity-50 cursor-not-allowed' : ''}`}
+              size="sm"
+            >
+              <Check className="h-3 w-3 mr-1" />
+              참석
+            </Button>
+          )}
           <Button
             onClick={(e) => { e.stopPropagation(); handleVote('NOT_ATTENDING'); }}
             disabled={isSubmitting || myStatus === 'not_attending' || formationConfirmed}
@@ -425,6 +466,14 @@ export function AttendanceVoting({
           >
             불참 {stats.notAttending}
           </button>
+          {stats.waiting > 0 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setDetailDialogType('waiting'); }}
+              className="hover:text-yellow-600 hover:underline cursor-pointer"
+            >
+              웨이팅 {stats.waiting}
+            </button>
+          )}
           <button
             onClick={(e) => { e.stopPropagation(); setDetailDialogType('pending'); }}
             className="hover:text-gray-800 hover:underline cursor-pointer"
@@ -454,16 +503,29 @@ export function AttendanceVoting({
           </div>
         )}
         <div className="flex gap-2">
-          <Button
-            onClick={() => handleVote('ATTENDING')}
-            disabled={isSubmitting || myStatus === 'attending' || formationConfirmed}
-            variant={myStatus === 'attending' ? 'default' : 'outline'}
-            className={`flex-1 ${myStatus === 'attending' ? 'bg-green-600 hover:bg-green-700 text-white' : 'hover:bg-green-50 hover:text-green-700'} ${formationConfirmed ? 'opacity-50 cursor-not-allowed' : ''}`}
-            size="sm"
-          >
-            <Check className="h-4 w-4 mr-1" />
-            참석
-          </Button>
+          {isFull && myStatus !== 'attending' ? (
+            <Button
+              onClick={() => handleVote('WAITING')}
+              disabled={isSubmitting || myStatus === 'waiting' || formationConfirmed}
+              variant={myStatus === 'waiting' ? 'default' : 'outline'}
+              className={`flex-1 ${myStatus === 'waiting' ? 'bg-yellow-500 hover:bg-yellow-600 text-white' : 'hover:bg-yellow-50 hover:text-yellow-700'} ${formationConfirmed ? 'opacity-50 cursor-not-allowed' : ''}`}
+              size="sm"
+            >
+              <ListOrdered className="h-4 w-4 mr-1" />
+              웨이팅
+            </Button>
+          ) : (
+            <Button
+              onClick={() => handleVote('ATTENDING')}
+              disabled={isSubmitting || myStatus === 'attending' || formationConfirmed || isFull}
+              variant={myStatus === 'attending' ? 'default' : 'outline'}
+              className={`flex-1 ${myStatus === 'attending' ? 'bg-green-600 hover:bg-green-700 text-white' : 'hover:bg-green-50 hover:text-green-700'} ${formationConfirmed ? 'opacity-50 cursor-not-allowed' : ''}`}
+              size="sm"
+            >
+              <Check className="h-4 w-4 mr-1" />
+              참석
+            </Button>
+          )}
           <Button
             onClick={() => handleVote('NOT_ATTENDING')}
             disabled={isSubmitting || myStatus === 'not_attending' || formationConfirmed}
@@ -530,7 +592,7 @@ export function AttendanceVoting({
           className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border transition-colors ${stats.attending > 0 ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100' : 'bg-gray-50 border-gray-200 text-gray-500'}`}
           disabled={isPastSchedule}
         >
-          <span className="text-sm font-medium">참석 {stats.attending}</span>
+          <span className="text-sm font-medium">참석<br></br>{stats.attending}</span>
         </button>
 
         <button
@@ -538,15 +600,25 @@ export function AttendanceVoting({
           className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border transition-colors ${stats.notAttending > 0 ? 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100' : 'bg-gray-50 border-gray-200 text-gray-500'}`}
           disabled={isPastSchedule}
         >
-          <span className="text-sm font-medium">불참 {stats.notAttending}</span>
+          <span className="text-sm font-medium">불참<br></br>{stats.notAttending}</span>
         </button>
+
+        {stats.waiting > 0 && (
+          <button
+            onClick={(e) => { e.stopPropagation(); setDetailDialogType('waiting'); }}
+            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border transition-colors ${stats.waiting > 0 ? 'bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100' : 'bg-gray-50 border-gray-200 text-gray-500'}`}
+            disabled={isPastSchedule}
+          >
+            <span className="text-sm font-medium">웨이팅<br></br>{stats.waiting}</span>
+          </button>
+        )}
 
         <button
           onClick={(e) => { e.stopPropagation(); setDetailDialogType('pending'); }}
           className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border transition-colors ${stats.pending > 0 ? 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100' : 'bg-gray-50 border-gray-200 text-gray-500'}`}
           disabled={isPastSchedule}
         >
-          <span className="text-sm font-medium">미정 {stats.pending}</span>
+          <span className="text-sm font-medium">미정<br></br>{stats.pending}</span>
         </button>
       </div>
 

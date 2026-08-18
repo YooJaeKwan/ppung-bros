@@ -16,6 +16,7 @@ export async function updateScheduleAttendanceStats(scheduleId: string) {
         const attendingCount = counts.find(c => c.status === 'ATTENDING')?._count ?? 0
         const notAttendingCount = counts.find(c => c.status === 'NOT_ATTENDING')?._count ?? 0
         const pendingCount = counts.find(c => c.status === 'PENDING')?._count ?? 0
+        const waitingCount = counts.find(c => c.status === 'WAITING')?._count ?? 0
 
         // Schedule 테이블 업데이트
         await prisma.schedule.update({
@@ -23,11 +24,12 @@ export async function updateScheduleAttendanceStats(scheduleId: string) {
             data: {
                 attendingCount,
                 notAttendingCount,
-                pendingCount
+                pendingCount,
+                waitingCount
             }
         })
 
-        return { attendingCount, notAttendingCount, pendingCount }
+        return { attendingCount, notAttendingCount, pendingCount, waitingCount }
     } catch (error) {
         console.error('참석 통계 업데이트 실패:', error)
         throw error
@@ -54,14 +56,15 @@ export async function updateScheduleAttendanceStatsWithPending(scheduleId: strin
 
         const attendingCount = counts.find(c => c.status === 'ATTENDING')?._count ?? 0
         const notAttendingCount = counts.find(c => c.status === 'NOT_ATTENDING')?._count ?? 0
+        const waitingCount = counts.find(c => c.status === 'WAITING')?._count ?? 0
 
         // 게스트 수 (게스트는 pending에서 제외)
         const guestCount = await prisma.scheduleAttendance.count({
             where: { scheduleId, isGuest: true }
         })
 
-        // 투표하지 않은 인원 = 전체 사용자 - (참석 + 불참 - 게스트 중 참석/불참)
-        const votedRegularUsers = attendingCount + notAttendingCount - guestCount
+        // 투표하지 않은 인원 = 전체 사용자 - (참석 + 불참 + 웨이팅 - 게스트 중 참석/불참/웨이팅)
+        const votedRegularUsers = attendingCount + notAttendingCount + waitingCount - guestCount
         const pendingCount = Math.max(0, totalActiveUsers - votedRegularUsers)
 
         await prisma.schedule.update({
@@ -69,11 +72,12 @@ export async function updateScheduleAttendanceStatsWithPending(scheduleId: strin
             data: {
                 attendingCount,
                 notAttendingCount,
-                pendingCount
+                pendingCount,
+                waitingCount
             }
         })
 
-        return { attendingCount, notAttendingCount, pendingCount, total: totalActiveUsers }
+        return { attendingCount, notAttendingCount, pendingCount, waitingCount, total: totalActiveUsers }
     } catch (error) {
         console.error('참석 통계 업데이트 실패:', error)
         throw error

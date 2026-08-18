@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 유효한 참석 상태인지 확인
-    const validStatuses = ['PENDING', 'ATTENDING', 'NOT_ATTENDING']
+    const validStatuses = ['PENDING', 'ATTENDING', 'NOT_ATTENDING', 'WAITING']
     if (!validStatuses.includes(status)) {
       return NextResponse.json(
         { error: '유효하지 않은 참석 상태입니다.' },
@@ -78,6 +78,16 @@ export async function POST(request: NextRequest) {
     }
 
     // 기존 참석 정보 확인 후 upsert
+    const previousAttendance = await prisma.scheduleAttendance.findUnique({
+      where: {
+        scheduleId_userId: {
+          scheduleId,
+          userId
+        }
+      }
+    })
+    const wasAttending = previousAttendance?.status === 'ATTENDING'
+
     const attendance = await prisma.scheduleAttendance.upsert({
       where: {
         scheduleId_userId: {
@@ -128,6 +138,22 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.error('팀편성 초기화 중 오류 (무시됨):', error)
       // 팀편성 초기화 실패는 참석 투표 성공에 영향을 주지 않음
+    }
+
+    // 자동 웨이팅 -> 참석 전환 로직
+    if (wasAttending && status !== 'ATTENDING' && schedule.maxAttendees) {
+      const waitingUser = await prisma.scheduleAttendance.findFirst({
+        where: { scheduleId, status: 'WAITING' },
+        orderBy: { updatedAt: 'asc' }
+      })
+      
+      if (waitingUser) {
+        await prisma.scheduleAttendance.update({
+          where: { id: waitingUser.id },
+          data: { status: 'ATTENDING', updatedAt: new Date() }
+        })
+        console.log(`웨이팅 자동 전환: ${waitingUser.userId} (schedule: ${scheduleId})`)
+      }
     }
 
     // 참석 통계 업데이트 (비정규화된 카운터) - 응답 속도를 위해 비동기로 처리
@@ -191,6 +217,7 @@ export async function GET(request: NextRequest) {
       // 3. 통계 계산
       let attending = 0
       let notAttending = 0
+      let waiting = 0
       let votedMembers = 0
 
       attendanceStats.forEach(stat => {
@@ -200,10 +227,12 @@ export async function GET(request: NextRequest) {
           attending += count
         } else if (stat.status === 'NOT_ATTENDING') {
           notAttending += count
+        } else if (stat.status === 'WAITING') {
+          waiting += count
         }
 
         // 미정(Pending) 계산을 위해 투표한 정회원 수 집계 (게스트 제외)
-        if (!stat.isGuest && (stat.status === 'ATTENDING' || stat.status === 'NOT_ATTENDING')) {
+        if (!stat.isGuest && (stat.status === 'ATTENDING' || stat.status === 'NOT_ATTENDING' || stat.status === 'WAITING')) {
           votedMembers += count
         }
       })
@@ -216,8 +245,9 @@ export async function GET(request: NextRequest) {
         stats: {
           attending,
           notAttending,
+          waiting,
           pending,
-          total: attending + notAttending + pending
+          total: attending + notAttending + waiting + pending
         }
       })
     }
@@ -310,6 +340,7 @@ export async function GET(request: NextRequest) {
         total: attendeeList.length,
         attending: attendeeList.filter(a => a.status === 'attending').length,
         notAttending: attendeeList.filter(a => a.status === 'not_attending').length,
+        waiting: attendeeList.filter(a => a.status === 'waiting').length,
         pending: attendeeList.filter(a => a.status === 'pending').length
       }
     })
@@ -399,6 +430,12 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
+    // 삭제 대상의 기존 상태 확인
+    const attendanceToDelete = guestId 
+      ? await prisma.scheduleAttendance.findUnique({ where: { scheduleId_guestId: { scheduleId, guestId } } })
+      : await prisma.scheduleAttendance.findUnique({ where: { scheduleId_userId: { scheduleId, userId: targetUserId! } } });
+    const wasAttending = attendanceToDelete?.status === 'ATTENDING';
+
     // 참석 기록 삭제
     if (guestId) {
       // 게스트 삭제
@@ -444,6 +481,22 @@ export async function DELETE(request: NextRequest) {
       }
     } catch (error) {
       console.error('팀편성 초기화 중 오류 (무시됨):', error)
+    }
+
+    // 자동 웨이팅 -> 참석 전환 로직
+    if (wasAttending && schedule.maxAttendees) {
+      const waitingUser = await prisma.scheduleAttendance.findFirst({
+        where: { scheduleId, status: 'WAITING' },
+        orderBy: { updatedAt: 'asc' }
+      })
+      
+      if (waitingUser) {
+        await prisma.scheduleAttendance.update({
+          where: { id: waitingUser.id },
+          data: { status: 'ATTENDING', updatedAt: new Date() }
+        })
+        console.log(`웨이팅 자동 전환 (삭제 후): ${waitingUser.userId} (schedule: ${scheduleId})`)
+      }
     }
 
     // 참석 통계 업데이트 (비정규화된 카운터) - 응답 속도를 위해 비동기로 처리

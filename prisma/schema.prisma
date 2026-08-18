@@ -111,6 +111,7 @@ model Schedule {
   attendingCount    Int @default(0)
   notAttendingCount Int @default(0)
   pendingCount      Int @default(0)
+  waitingCount      Int @default(0)
 
   createdBy       String
   createdAt       DateTime  @default(now())
@@ -125,7 +126,7 @@ model ScheduleAttendance {
   id         String   @id @default(cuid())
   scheduleId String
   userId     String?  // 게스트의 경우 null일 수 있음
-  status     String   @default("PENDING") // PENDING, ATTENDING, NOT_ATTENDING
+  status     String   @default("PENDING") // PENDING, ATTENDING, NOT_ATTENDING, WAITING
 
   // 게스트 관련 필드
   isGuest    Boolean  @default(false)

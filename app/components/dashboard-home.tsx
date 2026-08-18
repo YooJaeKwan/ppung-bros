@@ -243,8 +243,9 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
                                         allowGuests={nextSchedule.allowGuests}
                                         hasTeamFormation={!!nextSchedule.teamFormation}
                                         formationConfirmed={nextSchedule.formationConfirmed}
+                                        maxAttendees={nextSchedule.maxAttendees}
                                         initialStats={nextSchedule.attendanceStats}
-                                        initialMyStatus={nextSchedule.myAttendance?.toLowerCase() as 'attending' | 'not_attending' | 'pending'}
+                                        initialMyStatus={nextSchedule.myAttendance?.toLowerCase() as 'attending' | 'not_attending' | 'pending' | 'waiting'}
                                         onVoteUpdate={() => {
                                             // Next Schedule만 새로고침
                                             if (currentUser?.id) {

@@ -52,7 +52,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
   // 참석 현황 통계 계산
   const getAttendanceStats = (attendees: any[]) => {
     if (!attendees || attendees.length === 0) {
-      return { attending: 0, notAttending: 0, pending: 0, total: 0, percentage: 0 }
+      return { attending: 0, notAttending: 0, pending: 0, waiting: 0, total: 0, percentage: 0 }
     }
 
     const attending = attendees.filter(att =>
@@ -61,11 +61,12 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
     const notAttending = attendees.filter(att =>
       att.status === 'not_attending' || att.status === 'not_attended'
     ).length
+    const waiting = attendees.filter(att => att.status === 'waiting').length
     const pending = attendees.filter(att => att.status === 'pending').length
     const total = attendees.length
     const percentage = total > 0 ? Math.round((attending / total) * 100) : 0
 
-    return { attending, notAttending, pending, total, percentage }
+    return { attending, notAttending, pending, waiting, total, percentage }
   }
 
   // 인원 제한 관련 계산 제거됨 (아래로 이동)
@@ -238,6 +239,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                 hasTeamFormation={!!schedule.teamFormation}
                 formationConfirmed={schedule.formationConfirmed}
                 isManagerMode={isManagerMode}
+                maxAttendees={schedule.maxAttendees}
                 onVoteUpdate={() => {
                   onVoteUpdate?.()
                   onAttendanceUpdate(schedule.id)
@@ -410,6 +412,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                     hasTeamFormation={!!schedule.teamFormation}
                     formationConfirmed={schedule.formationConfirmed}
                     isManagerMode={isManagerMode}
+                    maxAttendees={schedule.maxAttendees}
                     onVoteUpdate={() => {
                       onVoteUpdate?.()
                       onAttendanceUpdate(schedule.id)
@@ -417,7 +420,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                     initialAttendees={schedule.attendees?.map((att: any) => ({
                       userId: att.userId,
                       name: att.name,
-                      status: att.status as 'attending' | 'not_attending' | 'pending',
+                      status: att.status as 'attending' | 'not_attending' | 'pending' | 'waiting',
                       profileImage: att.profileImage || null,
                       isGuest: att.isGuest || false,
                       invitedBy: att.invitedBy

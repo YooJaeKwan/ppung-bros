@@ -974,6 +974,7 @@ export function ScheduleManagement({
                             hasTeamFormation={!!nextUpcomingSchedule.teamFormation}
                             formationConfirmed={nextUpcomingSchedule.formationConfirmed}
                             isManagerMode={isManagerMode}
+                            maxAttendees={nextUpcomingSchedule.maxAttendees}
                             onVoteUpdate={() => refreshSchedule(nextUpcomingSchedule.id)}
                           />
                         </div>
