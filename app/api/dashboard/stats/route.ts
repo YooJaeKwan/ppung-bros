@@ -128,10 +128,11 @@ export async function GET(request: NextRequest) {
 
       const attendingCount = attendances.filter((a: any) => a.status === 'ATTENDING').length
       const notAttendingCount = attendances.filter((a: any) => a.status === 'NOT_ATTENDING').length
+      const waitingCount = attendances.filter((a: any) => a.status === 'WAITING').length
 
       // 미응답 계산: 전체 활성 유저 - (투표한 유저 수)
       // 게스트는 미응답 카운트에 포함되지 않음
-      const votedUserCount = attendances.filter((a: any) => !a.isGuest && (a.status === 'ATTENDING' || a.status === 'NOT_ATTENDING')).length
+      const votedUserCount = attendances.filter((a: any) => !a.isGuest && (a.status === 'ATTENDING' || a.status === 'NOT_ATTENDING' || a.status === 'WAITING')).length
       const pendingCount = Math.max(0, activeUserCount - votedUserCount)
 
       // 현재 사용자의 참석 상태 찾기
@@ -149,8 +150,9 @@ export async function GET(request: NextRequest) {
         attendanceStats: {
           attending: attendingCount,
           notAttending: notAttendingCount,
+          waiting: waitingCount,
           pending: pendingCount,
-          total: attendingCount + notAttendingCount + pendingCount
+          total: attendingCount + notAttendingCount + waitingCount + pendingCount
         }
       }
     }

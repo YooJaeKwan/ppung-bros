@@ -107,12 +107,14 @@ export async function GET(request: NextRequest) {
       const attendanceStats = {
         attending: 0,
         notAttending: 0,
+        waiting: 0,
         pending: 0
       }
 
       finalAttendeesForStats.forEach(a => {
         if (a.status === 'attending') attendanceStats.attending++
         else if (a.status === 'not_attending') attendanceStats.notAttending++
+        else if (a.status === 'waiting') attendanceStats.waiting++
         else if (a.status === 'pending') attendanceStats.pending++
       })
 

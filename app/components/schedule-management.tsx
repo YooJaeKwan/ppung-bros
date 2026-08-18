@@ -522,10 +522,10 @@ export function ScheduleManagement({
       return matchDateTime <= now
     } else {
       // 경기 시간이 지나지 않은 경기 (upcoming)
-      // 다음 일정은 상단에 표시되므로 목록에서 제외
-      if (nextUpcomingSchedule && schedule.id === nextUpcomingSchedule.id) {
-        return false
-      }
+      // 다음 일정은 상단에 표시되므로 목록에서 제외 (제거됨 - 모두 같은 리스트로 표시)
+      // if (nextUpcomingSchedule && schedule.id === nextUpcomingSchedule.id) {
+      //   return false
+      // }
       return matchDateTime > now
     }
   }).sort((a, b) => {
@@ -778,50 +778,6 @@ export function ScheduleManagement({
                   rows={3}
                 />
               </div>
-
-              {(selectedDate && !isNaN(selectedDate.getTime()) || newSchedule.time || newSchedule.location) && (
-                <div className="p-4 bg-blue-50 rounded-lg space-y-2">
-                  <h4 className="font-medium text-blue-800">일정 요약</h4>
-                  <div className="text-sm text-blue-700 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Target className="h-4 w-4" />
-                      <span className="font-medium">자체경기</span>
-                    </div>
-                    {(() => {
-                      try {
-                        return selectedDate && !isNaN(selectedDate.getTime()) && (
-                          <div className="flex items-center gap-2">
-                            <CalendarIcon className="h-4 w-4" />
-                            {format(selectedDate, "yyyy년 MM월 dd일 (EEE)", { locale: ko })}
-                          </div>
-                        )
-                      } catch (error) {
-                        console.error('날짜 포맷 오류:', error)
-                        return null
-                      }
-                    })()}
-                    {newSchedule.time && (
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        시작: {newSchedule.time}
-                      </div>
-                    )}
-                    {newSchedule.location && (
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4" />
-                        장소: {newSchedule.location}
-                      </div>
-                    )}
-                    {newSchedule.maxAttendees && (
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4" />
-                        인원: {newSchedule.maxAttendees}명 제한
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={resetScheduleForm}>
@@ -873,289 +829,7 @@ export function ScheduleManagement({
         )
       }
 
-      {/* 다음 일정 (경기예정 모드에서만 표시) */}
-      {
-        viewMode === 'upcoming' && nextUpcomingSchedule && (
-          <div className="space-y-2">
-            {/* <h3 className="text-lg font-semibold">다음 일정</h3> */}
-            <Card className="border-l-4 border-l-blue-500">
-              {/* <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                <CalendarIcon className="h-5 w-5" />
-                다음 경기 정보
-                </CardTitle>
-            </CardHeader> */}
-              {isScheduleUpdating(nextUpcomingSchedule.id) ? (
-                <ScheduleItemSkeleton />
-              ) : (
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    {/* D-Day 표시와 액션 버튼 */}
-                    <div className="flex items-center justify-center gap-3">
-                      <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full font-semibold">
-                        <CalendarIcon className="h-4 w-4" />
-                        {(() => {
-                          const daysLeft = calculateDaysLeft(nextUpcomingSchedule.date)
-                          if (daysLeft === 0) return "오늘 경기!"
-                          if (daysLeft === 1) return "내일 경기!"
-                          if (daysLeft > 0) return `D-${daysLeft}`
-                          return "지난 경기"
-                        })()}
-                      </div>
-                    </div>
-
-                    {/* 일정 기본 정보 */}
-                    <div className="text-center space-y-2">
-                      <h3 className="text-xl font-bold">
-                        {(() => {
-                          // 한국시간으로 저장된 날짜를 그대로 표시
-                          const [year, month, day] = nextUpcomingSchedule.date.split('-')
-                          const date = new Date(Number(year), Number(month) - 1, Number(day))
-                          return date.toLocaleDateString('ko-KR', {
-                            month: 'long',
-                            day: 'numeric',
-                            weekday: 'short'
-                          })
-                        })()} <span >{nextUpcomingSchedule.time}</span>
-                      </h3>
-                      <h3 className="flex gap-2 items-center justify-center text-xl font-bold">
-                        <MapPin className="h-4 w-4" />
-                        {nextUpcomingSchedule.location}
-                      </h3>
-                    </div>
-
-                    <div className="flex items-center justify-center">
-                      <div className="flex items-center gap-2">
-                        {nextUpcomingSchedule.allowGuests && (
-                          <Badge className="bg-yellow-100 text-yellow-800" variant="secondary">
-                            게스트허용
-                          </Badge>
-                        )}
-                        {isManagerMode && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                              onClick={() => handleEditSchedule(nextUpcomingSchedule)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                              onClick={() => handleDeleteSchedule(nextUpcomingSchedule.id, `${nextUpcomingSchedule.location} ${nextUpcomingSchedule.time}`)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* 설명 */}
-                    {nextUpcomingSchedule.description && (
-                      <p className="text-sm text-muted-foreground text-center">{nextUpcomingSchedule.description}</p>
-                    )}
-
-                    {/* 참석 투표 섹션 (지난 일정이 아니고 사용자가 로그인한 경우) */}
-                    {(() => {
-                      const daysLeft = calculateDaysLeft(nextUpcomingSchedule.date)
-                      const isStarted = isScheduleStarted(nextUpcomingSchedule.date, nextUpcomingSchedule.time)
-                      const isPastSchedule = isStarted
-                      return !isPastSchedule && currentUser?.id && (
-                        <div className="pt-4 border-t">
-                          <AttendanceVoting
-                            scheduleId={nextUpcomingSchedule.id}
-                            currentUserId={currentUser.id}
-                            isPastSchedule={isPastSchedule}
-                            allowGuests={nextUpcomingSchedule.allowGuests}
-                            hasTeamFormation={!!nextUpcomingSchedule.teamFormation}
-                            formationConfirmed={nextUpcomingSchedule.formationConfirmed}
-                            isManagerMode={isManagerMode}
-                            maxAttendees={nextUpcomingSchedule.maxAttendees}
-                            onVoteUpdate={() => refreshSchedule(nextUpcomingSchedule.id)}
-                          />
-                        </div>
-                      )
-                    })()}
-
-                    {/* 액션 버튼들 */}
-                    <div className="space-y-2 pt-1">
-                      <div className="flex gap-2 flex-wrap">
-                        {/* 게스트 허용 버튼 (총무 전용) */}
-                        {isManagerMode && (
-                          <Button
-                            onClick={async () => {
-                              startScheduleUpdate(nextUpcomingSchedule.id)
-                              try {
-                                const response = await fetch('/api/schedule/toggle-guests', {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({
-                                    scheduleId: nextUpcomingSchedule.id,
-                                    userId: currentUser?.id,
-                                    allowGuests: !nextUpcomingSchedule.allowGuests
-                                  })
-                                })
-
-                                if (response.ok) {
-                                  // 해당 일정의 게스트 허용 상태만 업데이트 (전체 페이지 리로딩 방지)
-                                  await updateScheduleGuestStatus(nextUpcomingSchedule.id)
-                                }
-                              } catch (error) {
-                                console.error('게스트 허용 상태 변경 중 오류:', error)
-                              } finally {
-                                endScheduleUpdate(nextUpcomingSchedule.id)
-                              }
-                            }}
-                            disabled={isScheduleUpdating(nextUpcomingSchedule.id)}
-                            variant={nextUpcomingSchedule.allowGuests ? "destructive" : "outline"}
-                            size="sm"
-                            className={`flex-1 ${nextUpcomingSchedule.allowGuests ? "" : "bg-yellow-400"}`}
-                          >
-                            {isScheduleUpdating(nextUpcomingSchedule.id)
-                              ? "업데이트 중..."
-                              : nextUpcomingSchedule.allowGuests ? "게스트 중단" : "게스트 허용"
-                            }
-                          </Button>
-                        )}
-
-                        {/* 공유 버튼 추가 */}
-                        {isManagerMode && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 bg-green-100 text-green-700 border-green-300 hover:bg-green-200"
-                            onClick={async () => {
-                              const text = generateKakaoShareText(nextUpcomingSchedule, isManagerMode)
-                              try {
-                                await navigator.clipboard.writeText(text)
-                                alert("경기 정보가 클립보드에 복사되었습니다.\n카카오톡 채팅창에 붙여넣기(Ctrl+V) 하세요.")
-                              } catch (err) {
-                                console.error('클립보드 복사 실패:', err)
-                                prompt("아래 텍스트를 복사하세요:", text)
-                              }
-                            }}
-                          >
-                            <Share2 className="h-4 w-4 mr-1" />
-                            공유
-                          </Button>
-                        )}
-
-                        {/* 자동 팀편성 버튼 (총무 전용) */}
-                        {isManagerMode && (() => {
-                          const [year, month, day] = nextUpcomingSchedule.date.split('-')
-                          const targetDate = new Date(Number(year), Number(month) - 1, Number(day))
-                          const today = new Date()
-                          today.setHours(0, 0, 0, 0)
-                          const diffTime = targetDate.getTime() - today.getTime()
-                          const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-                          const attendingCount = nextUpcomingSchedule.attendances?.filter((a: any) => a.status === 'ATTENDING').length || 0
-                          const isEnoughMembers = attendingCount >= 10
-                          const isTimeReady = daysLeft <= 2
-                          const isEnabled = isEnoughMembers && isTimeReady && !isScheduleUpdating(nextUpcomingSchedule.id)
-
-                          const handleFormation = async (count: number) => {
-                            if (!confirm(`${count}팀으로 자동 팀편성을 실행하시겠습니까?`)) return
-
-                            startScheduleUpdate(nextUpcomingSchedule.id)
-                            try {
-                              const response = await fetch('/api/schedule/team-formation', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                  scheduleId: nextUpcomingSchedule.id,
-                                  userId: currentUser?.id,
-                                  teamCount: count
-                                })
-                              })
-
-                              if (!response.ok) {
-                                const errorText = await response.text()
-                                console.error('팀편성 API 오류:', errorText)
-                                throw new Error('팀편성 API 호출 실패')
-                              }
-
-                              const result = await response.json()
-
-                              if (result.success) {
-                                alert('팀편성이 완료되었습니다.')
-                                fetchSchedules()
-                              } else {
-                                alert(result.error || '팀편성 중 오류가 발생했습니다.')
-                              }
-                            } catch (error) {
-                              console.error('팀편성 처리 중 오류:', error)
-                              alert('팀편성 처리 중 오류가 발생했습니다.')
-                            } finally {
-                              endScheduleUpdate(nextUpcomingSchedule.id)
-                            }
-                          }
-
-                          return (
-                            <div className="flex flex-col gap-2 w-full">
-                              <div className="grid grid-cols-2 gap-2">
-                                <Button
-                                  onClick={() => handleFormation(2)}
-                                  disabled={!isEnabled}
-                                  variant="default"
-                                  size="sm"
-                                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500"
-                                >
-                                  <UsersRound className="h-4 w-4 mr-1" />
-                                  {isScheduleUpdating(nextUpcomingSchedule.id) ? "처리 중..." :
-                                    !isEnoughMembers ? `2팀 (${attendingCount}/10명)` :
-                                      !isTimeReady ? `2팀 (D-${daysLeft})` :
-                                        "2팀 자동 편성"
-                                  }
-                                </Button>
-                                <Button
-                                  onClick={() => handleFormation(3)}
-                                  disabled={!isEnabled}
-                                  variant="default"
-                                  size="sm"
-                                  className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:text-gray-500"
-                                >
-                                  <UsersRound className="h-4 w-4 mr-1" />
-                                  {isScheduleUpdating(nextUpcomingSchedule.id) ? "처리 중..." :
-                                    !isEnoughMembers ? `3팀 (${attendingCount}/10명)` :
-                                      !isTimeReady ? `3팀 (D-${daysLeft})` :
-                                        "3팀 자동 편성"
-                                  }
-                                </Button>
-                              </div>
-                            </div>
-                          )
-                        })()}
-                      </div>
-                    </div>
-
-                    {/* 팀편성 결과 표시 - 확정 전에는 총무만 조회 가능 */}
-                    {nextUpcomingSchedule.teamFormation && (isManagerMode || nextUpcomingSchedule.formationConfirmed) && (
-                      <div className="pt-4 border-t">
-                        <TeamFormation
-                          scheduleId={nextUpcomingSchedule.id}
-                          teamFormation={nextUpcomingSchedule.teamFormation}
-                          formationDate={nextUpcomingSchedule.formationDate}
-                          formationConfirmed={nextUpcomingSchedule.formationConfirmed}
-                          isManagerMode={isManagerMode}
-                          currentUserId={currentUser?.id || ''}
-                          onFormationUpdate={fetchSchedules}
-                          onFormationDelete={fetchSchedules}
-                          onFormationConfirm={fetchSchedules}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              )}
-            </Card>
-          </div>
-        )
-      }
+      {/* 다음 일정 큰 화면 블록 제거됨 (모든 일정을 리스트 형태로 동일하게 표시) */}
 
       {/* 일정 목록 - viewMode에 따라 표시 */}
       <div className="space-y-6">
@@ -1181,6 +855,7 @@ export function ScheduleManagement({
                 <ScheduleCard
                   key={schedule.id}
                   compact={true}
+                  highlight={schedule.date === nextUpcomingSchedule?.date}
                   schedule={schedule}
                   currentUser={currentUser}
                   isManagerMode={isManagerMode}
@@ -1192,6 +867,31 @@ export function ScheduleManagement({
                   onDeleteSchedule={handleDeleteSchedule}
                   onEditSchedule={handleEditSchedule}
                   onVoteUpdate={handleVoteUpdate}
+                  // 팀편성 기능 전달
+                  onTeamFormation={async (count: number) => {
+                    startScheduleUpdate(schedule.id)
+                    try {
+                      const response = await fetch('/api/schedule/team-formation', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          scheduleId: schedule.id,
+                          userId: currentUser?.id,
+                          teamCount: count
+                        })
+                      })
+                      if (response.ok) {
+                        alert('팀편성이 완료되었습니다.')
+                        fetchSchedules()
+                      } else {
+                        alert('팀편성 중 오류가 발생했습니다.')
+                      }
+                    } catch (error) {
+                      console.error('팀편성 처리 중 오류:', error)
+                    } finally {
+                      endScheduleUpdate(schedule.id)
+                    }
+                  }}
                 />
               ))
             )}

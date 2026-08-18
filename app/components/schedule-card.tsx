@@ -5,10 +5,11 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { CalendarIcon, MapPinIcon, UsersIcon, ClockIcon, X, Check, UserPlus, UserMinus, Edit, Trash2, Trophy, ChevronDown, ChevronUp, Share2 } from 'lucide-react'
+import { CalendarIcon, MapPinIcon, UsersIcon, ClockIcon, X, Check, UserPlus, UserMinus, Edit, Trash2, Trophy, ChevronDown, ChevronUp, Share2, UsersRound } from 'lucide-react'
 import { calculateDaysLeft, generateKakaoShareText, isScheduleStarted } from '@/lib/utils'
 import { AttendanceVoting } from './attendance-voting'
 import { ScheduleComments } from './schedule-comments'
+import { TeamFormation } from './team-formation'
 import {
   Collapsible,
   CollapsibleContent,
@@ -28,7 +29,9 @@ interface ScheduleCardProps {
   onDeleteSchedule: (scheduleId: string) => void
   onEditSchedule: (schedule: any) => void
   onVoteUpdate?: () => void
+  onTeamFormation?: (count: number) => void
   hasTeamFormation?: boolean
+  highlight?: boolean
 }
 
 const ScheduleCard: React.FC<ScheduleCardProps> = ({
@@ -43,8 +46,10 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
   onDeleteSchedule,
   onEditSchedule,
   onVoteUpdate,
+  onTeamFormation,
   hasTeamFormation = false,
-  compact = false
+  compact = false,
+  highlight = false
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isRosterExpanded, setIsRosterExpanded] = useState(false)
@@ -98,7 +103,11 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
       const response = await fetch('/api/schedule/toggle-guests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scheduleId: schedule.id })
+        body: JSON.stringify({ 
+          scheduleId: schedule.id,
+          userId: currentUser?.id,
+          allowGuests: !schedule.allowGuests
+        })
       })
 
       if (response.ok) {
@@ -162,10 +171,11 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
 
   if (compact) {
     return (
-      <Card className={`mb-3 overflow-hidden transition-all hover:shadow-md border-l-4 ${daysLeft === 0 ? 'border-l-red-500' :
-        daysLeft === 1 ? 'border-l-orange-500' :
-          'border-l-blue-500'
-        }`}>
+      <Card className={`mb-3 overflow-hidden transition-all hover:shadow-md ${
+        highlight 
+          ? `border-2 border-blue-500`
+          : `border-l-4 border-l-blue-500`
+      }`}>
         <CardContent className="p-4">
           <div className="flex justify-between items-start mb-3">
             <div>
@@ -258,6 +268,95 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
               />
             </div>
           )}
+
+          {/* Manager Action Buttons & Team Formation (Compact Mode) */}
+          {!isPastSchedule && isManagerMode && (
+            <div className="mt-3 pt-3 border-t border-gray-100 flex flex-col gap-2">
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  onClick={handleGuestToggle}
+                  disabled={isSubmitting}
+                  variant={schedule.allowGuests ? "destructive" : "outline"}
+                  size="sm"
+                  className={`flex-1 ${schedule.allowGuests ? "" : "bg-yellow-400"}`}
+                >
+                  {isSubmitting ? "업데이트 중..." : schedule.allowGuests ? "게스트 중단" : "게스트 허용"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 bg-green-100 text-green-700 border-green-300 hover:bg-green-200"
+                  onClick={handleCopyForSharing}
+                >
+                  <Share2 className="h-4 w-4 mr-1" />
+                  공유
+                </Button>
+              </div>
+
+              {/* Auto Team Formation Buttons */}
+              {onTeamFormation && (() => {
+                const attendingCount = schedule.attendees?.filter((a: any) => a.status === 'attending' || a.status === 'ATTENDING').length || 0
+                const isEnoughMembers = attendingCount >= 10
+                const isTimeReady = daysLeft <= 2
+                const isEnabled = isEnoughMembers && isTimeReady && !isSubmitting
+
+                return (
+                  <div className="grid grid-cols-2 gap-2 mt-1">
+                    <Button
+                      onClick={() => {
+                        if (confirm(`2팀으로 자동 팀편성을 실행하시겠습니까?`)) {
+                          onTeamFormation(2)
+                        }
+                      }}
+                      disabled={!isEnabled}
+                      variant="default"
+                      size="sm"
+                      className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500"
+                    >
+                      <UsersRound className="h-4 w-4 mr-1" />
+                      {!isEnoughMembers ? `2팀 (${attendingCount}/10명)` :
+                        !isTimeReady ? `2팀 (D-${daysLeft})` :
+                          "2팀 자동 편성"}
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (confirm(`3팀으로 자동 팀편성을 실행하시겠습니까?`)) {
+                          onTeamFormation(3)
+                        }
+                      }}
+                      disabled={!isEnabled}
+                      variant="default"
+                      size="sm"
+                      className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:text-gray-500"
+                    >
+                      <UsersRound className="h-4 w-4 mr-1" />
+                      {!isEnoughMembers ? `3팀 (${attendingCount}/10명)` :
+                        !isTimeReady ? `3팀 (D-${daysLeft})` :
+                          "3팀 자동 편성"}
+                    </Button>
+                  </div>
+                )
+              })()}
+            </div>
+          )}
+
+          {/* Team Formation Result */}
+          {schedule.teamFormation && (isManagerMode || schedule.formationConfirmed) && (
+            <div className="mt-4 pt-3 border-t border-gray-100">
+              <TeamFormation
+                scheduleId={schedule.id}
+                teamFormation={schedule.teamFormation}
+                formationDate={schedule.formationDate}
+                formationConfirmed={schedule.formationConfirmed}
+                isManagerMode={isManagerMode}
+                currentUserId={currentUser?.id || ''}
+                onFormationUpdate={() => onVoteUpdate?.()}
+                onFormationDelete={() => onVoteUpdate?.()}
+                onFormationConfirm={() => onVoteUpdate?.()}
+              />
+            </div>
+          )}
+
         </CardContent>
       </Card>
     )

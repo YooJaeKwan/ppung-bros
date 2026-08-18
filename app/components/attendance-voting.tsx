@@ -453,30 +453,77 @@ export function AttendanceVoting({
             불참
           </Button>
         </div>
-        <div className="flex justify-between text-xs text-gray-500 px-1 pt-1">
+        
+        {allowGuests && (
+          <Dialog open={isGuestDialogOpen} onOpenChange={(open) => {
+            setIsGuestDialogOpen(open)
+            if (!open) { setGuestName(''); setGuestLevel(''); setSameTeamAsInviter(false); }
+          }}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className={`w-full h-8 text-xs ${formationConfirmed || isFull ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={isPastSchedule || formationConfirmed || isFull}>
+                <UserPlus className="h-3 w-3 mr-1" />
+                {isFull ? '인원 마감 (게스트 초대 불가)' : '게스트 초대'}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>게스트 초대 등록</DialogTitle>
+                <DialogDescription>게스트의 이름과 레벨을 입력해주세요.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="guestName-compact">게스트 이름</Label>
+                  <Input id="guestName-compact" placeholder="게스트 이름을 입력하세요" value={guestName} onChange={(e) => setGuestName(e.target.value)} disabled={isAddingGuest} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="guestLevel-compact">게스트 레벨</Label>
+                  <Select value={guestLevel} onValueChange={setGuestLevel} disabled={isAddingGuest}>
+                    <SelectTrigger id="guestLevel-compact"><SelectValue placeholder="레벨을 선택하세요" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="미숙">미숙</SelectItem>
+                      <SelectItem value="보통">보통</SelectItem>
+                      <SelectItem value="잘함">잘함</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2 p-2 rounded border">
+                    <Checkbox id="same-team-inviter-compact" checked={sameTeamAsInviter} onCheckedChange={(checked) => setSameTeamAsInviter(checked === true)} disabled={isAddingGuest} />
+                    <label htmlFor="same-team-inviter-compact" className="text-sm font-medium leading-none cursor-pointer">초대자와 같은 팀 희망</label>
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button onClick={handleAddGuest} disabled={isAddingGuest || !guestName.trim() || !guestLevel} className="flex-1">{isAddingGuest ? '등록 중...' : '등록'}</Button>
+                  <Button onClick={() => { setIsGuestDialogOpen(false); setGuestName(''); setGuestLevel(''); setSameTeamAsInviter(false); }} variant="outline" disabled={isAddingGuest} className="flex-1">취소</Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+        <div className="flex gap-1.5 pt-1">
           <button
             onClick={(e) => { e.stopPropagation(); setDetailDialogType('attending'); }}
-            className="hover:text-green-600 hover:underline cursor-pointer"
+            className={`flex-1 flex items-center justify-center py-1 rounded border text-xs font-medium transition-colors ${stats.attending > 0 ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100' : 'bg-gray-50 border-gray-200 text-gray-500'}`}
           >
             참석 {stats.attending}
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); setDetailDialogType('not_attending'); }}
-            className="hover:text-red-600 hover:underline cursor-pointer"
+            className={`flex-1 flex items-center justify-center py-1 rounded border text-xs font-medium transition-colors ${stats.notAttending > 0 ? 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100' : 'bg-gray-50 border-gray-200 text-gray-500'}`}
           >
             불참 {stats.notAttending}
           </button>
-          {stats.waiting > 0 && (
+          {(isFull || stats.waiting > 0) && (
             <button
               onClick={(e) => { e.stopPropagation(); setDetailDialogType('waiting'); }}
-              className="hover:text-yellow-600 hover:underline cursor-pointer"
+              className={`flex-1 flex items-center justify-center py-1 rounded border text-xs font-medium transition-colors ${stats.waiting > 0 ? 'bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100' : 'bg-gray-50 border-gray-200 text-gray-500'}`}
             >
               웨이팅 {stats.waiting}
             </button>
           )}
           <button
             onClick={(e) => { e.stopPropagation(); setDetailDialogType('pending'); }}
-            className="hover:text-gray-800 hover:underline cursor-pointer"
+            className={`flex-1 flex items-center justify-center py-1 rounded border text-xs font-medium transition-colors ${stats.pending > 0 ? 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100' : 'bg-gray-50 border-gray-200 text-gray-500'}`}
           >
             미정 {stats.pending}
           </button>
@@ -544,9 +591,9 @@ export function AttendanceVoting({
             if (!open) { setGuestName(''); setGuestLevel(''); setSameTeamAsInviter(false); }
           }}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className={`w-full ${formationConfirmed ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={isPastSchedule || formationConfirmed}>
+              <Button variant="outline" size="sm" className={`w-full ${formationConfirmed || isFull ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={isPastSchedule || formationConfirmed || isFull}>
                 <UserPlus className="h-4 w-4 mr-1" />
-                게스트 초대
+                {isFull ? '인원 마감 (게스트 초대 불가)' : '게스트 초대'}
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md">
@@ -603,7 +650,7 @@ export function AttendanceVoting({
           <span className="text-sm font-medium">불참<br></br>{stats.notAttending}</span>
         </button>
 
-        {stats.waiting > 0 && (
+        {(isFull || stats.waiting > 0) && (
           <button
             onClick={(e) => { e.stopPropagation(); setDetailDialogType('waiting'); }}
             className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border transition-colors ${stats.waiting > 0 ? 'bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100' : 'bg-gray-50 border-gray-200 text-gray-500'}`}
