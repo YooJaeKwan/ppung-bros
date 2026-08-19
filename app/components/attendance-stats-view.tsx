@@ -33,6 +33,7 @@ export function AttendanceStatsView() {
     const [data, setData] = useState<AttendanceData | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [sortConfig, setSortConfig] = useState<{ key: 'name' | 'rate', direction: 'asc' | 'desc' }>({ key: 'name', direction: 'asc' })
 
     useEffect(() => {
         fetchData()
@@ -63,6 +64,27 @@ export function AttendanceStatsView() {
         if (rate >= 40) return { grade: 'C', color: 'text-yellow-600 bg-yellow-100' }
         if (rate >= 20) return { grade: 'D', color: 'text-orange-600 bg-orange-100' }
         return { grade: 'E', color: 'text-red-600 bg-red-100' }
+    }
+
+    const handleSort = (key: 'name' | 'rate') => {
+        setSortConfig(prev => ({
+            key,
+            direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc'
+        }))
+    }
+
+    const getSortedUsers = () => {
+        if (!data) return []
+        const sortedUsers = [...data.users]
+        sortedUsers.sort((a, b) => {
+            if (sortConfig.key === 'name') {
+                return sortConfig.direction === 'asc' ? a.name.localeCompare(b.name, 'ko') : b.name.localeCompare(a.name, 'ko')
+            } else if (sortConfig.key === 'rate') {
+                return sortConfig.direction === 'asc' ? a.rate - b.rate : b.rate - a.rate
+            }
+            return 0
+        })
+        return sortedUsers
     }
 
     // 전체 평균 출석률 계산
@@ -157,8 +179,18 @@ export function AttendanceStatsView() {
                         <thead>
                             <tr className="bg-gray-50">
                                 <th className="border px-2 py-2 text-center min-w-[50px]">등급</th>
-                                <th className="sticky left-0 bg-gray-50 text-center z-10 border px-2 py-2 text-left min-w-[70px] whitespace-nowrap">이름</th>
-                                <th className="border px-2 py-2 text-center min-w-[50px] whitespace-nowrap">출석률</th>
+                                <th 
+                                    className="sticky left-0 bg-gray-50 text-center z-10 border px-2 py-2 text-left min-w-[70px] whitespace-nowrap cursor-pointer hover:bg-gray-200"
+                                    onClick={() => handleSort('name')}
+                                >
+                                    이름 {sortConfig.key === 'name' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                                </th>
+                                <th 
+                                    className="border px-2 py-2 text-center min-w-[50px] whitespace-nowrap cursor-pointer hover:bg-gray-200"
+                                    onClick={() => handleSort('rate')}
+                                >
+                                    출석률 {sortConfig.key === 'rate' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                                </th>
                                 {data.schedules.map(schedule => (
                                     <th
                                         key={schedule.id}
@@ -173,7 +205,7 @@ export function AttendanceStatsView() {
                             </tr>
                         </thead>
                         <tbody>
-                            {data.users.map(user => (
+                            {getSortedUsers().map(user => (
                                 <tr key={user.id} className="hover:bg-gray-50">
                                     <td className={`border px-2 py-1.5 text-center font-bold whitespace-nowrap ${getGrade(user.rate).color}`}>
                                         {getGrade(user.rate).grade}
