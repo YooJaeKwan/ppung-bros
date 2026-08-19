@@ -226,7 +226,7 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
           </TabsContent>
 
           <TabsContent value="attendance" className="mt-6">
-            <AttendanceStatsView />
+            <AttendanceStatsView isManagerMode={isManagerMode} currentUser={user} />
           </TabsContent>
 
           {/* 경기결과 및 앨범 탭 삭제됨 */}

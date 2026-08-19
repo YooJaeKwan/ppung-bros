@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Download, Users, Calendar as CalendarIcon } from 'lucide-react'
+import { Download, Users, Calendar as CalendarIcon, Edit3, Save, Trash2, X } from 'lucide-react'
 import * as XLSX from 'xlsx'
 
 interface UserStat {
@@ -29,11 +29,16 @@ interface AttendanceData {
     matrix: Record<string, Record<string, 'O' | 'X' | '-'>>
 }
 
-export function AttendanceStatsView() {
+export function AttendanceStatsView({ isManagerMode, currentUser }: { isManagerMode?: boolean, currentUser?: any }) {
     const [data, setData] = useState<AttendanceData | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [sortConfig, setSortConfig] = useState<{ key: 'name' | 'rate', direction: 'asc' | 'desc' }>({ key: 'name', direction: 'asc' })
+    
+    // 편집 관련 상태
+    const [isEditing, setIsEditing] = useState(false)
+    const [editedUpdates, setEditedUpdates] = useState<{scheduleId: string, targetUserId: string, status: 'O' | 'X' | '-'}[]>([])
+    const [isSaving, setIsSaving] = useState(false)
 
     useEffect(() => {
         fetchData()
@@ -85,6 +90,80 @@ export function AttendanceStatsView() {
             return 0
         })
         return sortedUsers
+    }
+
+    const handleCellClick = (scheduleId: string, userId: string, currentStatus: 'O' | 'X' | '-') => {
+        if (!isEditing) return
+
+        let nextStatus: 'O' | 'X' | '-' = '-'
+        if (currentStatus === 'O') nextStatus = 'X'
+        else if (currentStatus === 'X') nextStatus = '-'
+        else if (currentStatus === '-') nextStatus = 'O'
+
+        // Apply locally to data.matrix
+        const newData = { ...data! }
+        newData.matrix[userId][scheduleId] = nextStatus
+        setData(newData)
+
+        // Add to editedUpdates
+        setEditedUpdates(prev => {
+            const existingIndex = prev.findIndex(u => u.scheduleId === scheduleId && u.targetUserId === userId)
+            if (existingIndex >= 0) {
+                const newUpdates = [...prev]
+                newUpdates[existingIndex].status = nextStatus
+                return newUpdates
+            } else {
+                return [...prev, { scheduleId, targetUserId: userId, status: nextStatus }]
+            }
+        })
+    }
+
+    const handleDeleteSchedule = async (scheduleId: string) => {
+        if (!confirm('이 일정을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없으며 출석 기록도 모두 삭제됩니다.')) return
+        try {
+            const response = await fetch('/api/schedule/delete', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ scheduleId, userId: currentUser?.id })
+            })
+            if (response.ok) {
+                alert('일정이 삭제되었습니다.')
+                fetchData()
+            } else {
+                const result = await response.json()
+                alert(result.error || '삭제 실패')
+            }
+        } catch (error) {
+            alert('오류가 발생했습니다.')
+        }
+    }
+
+    const handleSave = async () => {
+        if (editedUpdates.length === 0) {
+            setIsEditing(false)
+            return
+        }
+        setIsSaving(true)
+        try {
+            const response = await fetch('/api/attendance/stats/update-bulk', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ updates: editedUpdates, userId: currentUser?.id })
+            })
+            if (response.ok) {
+                alert('출석부가 수정되었습니다.')
+                setEditedUpdates([])
+                setIsEditing(false)
+                fetchData()
+            } else {
+                const result = await response.json()
+                alert(result.error || '저장 실패')
+            }
+        } catch (error) {
+            alert('오류가 발생했습니다.')
+        } finally {
+            setIsSaving(false)
+        }
     }
 
     // 전체 평균 출석률 계산
@@ -172,6 +251,29 @@ export function AttendanceStatsView() {
                         </div>
                     </div>
                 </div>
+                <div className="flex items-center gap-2">
+                    {isManagerMode && !isEditing && (
+                        <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                            <Edit3 className="h-4 w-4 mr-2" />
+                            편집 모드
+                        </Button>
+                    )}
+                    {isManagerMode && isEditing && (
+                        <>
+                            <Button variant="outline" size="sm" onClick={() => {
+                                setIsEditing(false)
+                                setEditedUpdates([])
+                                fetchData() // discard changes
+                            }}>
+                                취소
+                            </Button>
+                            <Button size="sm" onClick={handleSave} disabled={isSaving}>
+                                <Save className="h-4 w-4 mr-2" />
+                                {isSaving ? '저장 중...' : '저장'}
+                            </Button>
+                        </>
+                    )}
+                </div>
             </CardHeader>
             <CardContent>
                 <div className="overflow-x-auto">
@@ -194,12 +296,21 @@ export function AttendanceStatsView() {
                                 {data.schedules.map(schedule => (
                                     <th
                                         key={schedule.id}
-                                        className="border px-1 py-2 text-center min-w-[50px]"
+                                        className="border px-1 py-2 text-center min-w-[50px] relative group"
                                         title={schedule.title}
                                     >
                                         <div className="text-xs text-gray-500">
                                             {schedule.date.slice(5)}
                                         </div>
+                                        {isEditing && (
+                                            <button 
+                                                onClick={() => handleDeleteSchedule(schedule.id)}
+                                                className="absolute -top-1 -right-1 bg-white rounded-full p-0.5 shadow-sm border opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                                                title="일정 삭제"
+                                            >
+                                                <Trash2 className="h-3 w-3 text-red-500" />
+                                            </button>
+                                        )}
                                     </th>
                                 ))}
                             </tr>
@@ -220,12 +331,17 @@ export function AttendanceStatsView() {
                                     </td>
                                     {data.schedules.map(schedule => {
                                         const status = data.matrix[user.id]?.[schedule.id] || '-'
+                                        const isEdited = editedUpdates.some(u => u.scheduleId === schedule.id && u.targetUserId === user.id)
                                         return (
                                             <td
                                                 key={schedule.id}
-                                                className={`border px-1 py-1.5 text-center ${status === 'O' ? 'text-green-600 bg-green-50' :
+                                                onClick={() => handleCellClick(schedule.id, user.id, status)}
+                                                className={`border px-1 py-1.5 text-center ${
+                                                    isEditing ? 'cursor-pointer hover:bg-gray-100 transition-colors' : ''
+                                                } ${
+                                                    status === 'O' ? 'text-green-600 bg-green-50' :
                                                     status === 'X' ? 'text-red-600 bg-red-50' : 'text-gray-400'
-                                                    }`}
+                                                } ${isEdited ? 'ring-2 ring-inset ring-blue-400 relative z-10' : ''}`}
                                             >
                                                 {status}
                                             </td>
