@@ -891,7 +891,7 @@ export function ScheduleManagement({
               </SelectContent>
             </Select>
 
-            <Select value={sortBy} onValueChange={(val: any) => setSortBy(val)}>
+            {/* <Select value={sortBy} onValueChange={(val: any) => setSortBy(val)}>
               <SelectTrigger className="w-[140px] bg-white">
                 <SelectValue placeholder="정렬 기준" />
               </SelectTrigger>
@@ -901,7 +901,7 @@ export function ScheduleManagement({
                 <SelectItem value="time">시간순</SelectItem>
                 <SelectItem value="deadline">마감임박순</SelectItem>
               </SelectContent>
-            </Select>
+            </Select> */}
           </div>
         )}
         {viewMode === 'upcoming' ? (
