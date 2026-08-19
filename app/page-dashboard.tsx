@@ -203,14 +203,18 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3">
           {/* Desktop Tabs */}
-          <div className="hidden lg:block">
-            <TabsList className="flex w-auto gap-1">
+          <div className="hidden lg:block mb-6">
+            <TabsList className="h-auto w-full justify-start gap-2 bg-muted/50 p-1.5 rounded-xl overflow-x-auto">
               {tabItems.map((item) => {
                 const Icon = item.icon
                 return (
-                  <TabsTrigger key={item.value} value={item.value} className="flex items-center gap-2">
-                    <Icon className="h-4 w-4" />
-                    <span className="hidden xl:inline">{item.label}</span>
+                  <TabsTrigger 
+                    key={item.value} 
+                    value={item.value} 
+                    className="flex items-center gap-2.5 px-5 py-2.5 text-base rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all whitespace-nowrap"
+                  >
+                    <Icon className="h-5 w-5" />
+                    <span className="font-medium">{item.label}</span>
                   </TabsTrigger>
                 )
               })}

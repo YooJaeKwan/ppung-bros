@@ -253,9 +253,9 @@ export function AttendanceStatsView({ isManagerMode, currentUser }: { isManagerM
                 </div>
                 <div className="flex items-center gap-2">
                     {isManagerMode && !isEditing && (
-                        <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                            <Edit3 className="h-4 w-4 mr-2" />
-                            편집 모드
+                        <Button variant="outline" size="sm" className="px-2.5 sm:px-3" onClick={() => setIsEditing(true)}>
+                            <Edit3 className="h-4 w-4 sm:mr-2" />
+                            <span className="hidden sm:inline">편집 모드</span>
                         </Button>
                     )}
                     {isManagerMode && isEditing && (
@@ -267,9 +267,9 @@ export function AttendanceStatsView({ isManagerMode, currentUser }: { isManagerM
                             }}>
                                 취소
                             </Button>
-                            <Button size="sm" onClick={handleSave} disabled={isSaving}>
-                                <Save className="h-4 w-4 mr-2" />
-                                {isSaving ? '저장 중...' : '저장'}
+                            <Button size="sm" className="px-2.5 sm:px-3" onClick={handleSave} disabled={isSaving}>
+                                <Save className="h-4 w-4 sm:mr-2" />
+                                <span className="hidden sm:inline">{isSaving ? '저장 중...' : '저장'}</span>
                             </Button>
                         </>
                     )}
