@@ -168,6 +168,28 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
     }
   }
 
+  const getStatusBadge = (max: number, current: number) => {
+    if (!max) return null;
+    let badge = null;
+    if (max === 18) {
+      if (current >= 18) badge = { text: '인원마감', className: 'bg-red-100 text-red-700 border-red-300 font-bold' };
+      else if (current >= 16) badge = { text: '마감임박', className: 'bg-orange-100 text-orange-700 border-orange-300 font-bold' };
+      else if (current >= 12) badge = { text: '진행확정', className: 'bg-green-100 text-green-700 border-green-300 font-bold' };
+      else if (current >= 10) badge = { text: '확정임박', className: 'bg-blue-100 text-blue-700 border-blue-300 font-bold' };
+    } else if (max === 15) {
+      if (current >= 15) badge = { text: '인원마감', className: 'bg-red-100 text-red-700 border-red-300 font-bold' };
+      else if (current >= 13) badge = { text: '마감임박', className: 'bg-orange-100 text-orange-700 border-orange-300 font-bold' };
+      else if (current >= 10) badge = { text: '진행확정', className: 'bg-green-100 text-green-700 border-green-300 font-bold' };
+      else if (current >= 8) badge = { text: '확정임박', className: 'bg-blue-100 text-blue-700 border-blue-300 font-bold' };
+    } else {
+      // 기타 인원 제한에 대한 기본 로직
+      if (current >= max) badge = { text: '인원마감', className: 'bg-red-100 text-red-700 border-red-300 font-bold' };
+      else if (current >= max - 2) badge = { text: '마감임박', className: 'bg-orange-100 text-orange-700 border-orange-300 font-bold' };
+      else if (current >= Math.floor(max * (2/3))) badge = { text: '진행확정', className: 'bg-green-100 text-green-700 border-green-300 font-bold' };
+      else if (current >= Math.floor(max * 0.5)) badge = { text: '확정임박', className: 'bg-blue-100 text-blue-700 border-blue-300 font-bold' };
+    }
+    return badge;
+  }
 
   if (compact) {
     return (
@@ -192,6 +214,18 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                   })()}
                 </span>
                 <span className="text-blue-600 font-bold">{schedule.time}</span>
+                {/* 진행상태 뱃지 (Compact) */}
+                {!isPastSchedule && schedule.maxAttendees && (() => {
+                  const badge = getStatusBadge(schedule.maxAttendees, stats.attending)
+                  if (badge) {
+                    return (
+                      <Badge variant="outline" className={`${badge.className} text-[10px] px-1.5 py-0 h-5 ml-1`}>
+                        {badge.text}
+                      </Badge>
+                    )
+                  }
+                  return null
+                })()}
               </div>
               <div className="flex items-center gap-1 text-sm text-gray-500">
                 <MapPinIcon className="h-3 w-3" />
@@ -200,12 +234,14 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
             </div>
             <div className="flex flex-col items-end gap-1">
               {!isPastSchedule && (
-                <span className={`text-xs font-bold ${daysLeft === 0 ? 'text-red-600' :
-                  daysLeft === 1 ? 'text-orange-600' :
-                    'text-blue-600'
-                  }`}>
-                  {daysLeft === 0 ? "D-Day" : `D-${daysLeft}`}
-                </span>
+                <div className="flex flex-col items-end gap-1.5">
+                  <span className={`text-xs font-bold ${daysLeft === 0 ? 'text-red-600' :
+                    daysLeft === 1 ? 'text-orange-600' :
+                      'text-blue-600'
+                    }`}>
+                    {daysLeft === 0 ? "D-Day" : `D-${daysLeft}`}
+                  </span>
+                </div>
               )}
               {isManagerMode && (
                 <div className="flex gap-1 mt-1">
@@ -395,6 +431,19 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                   <span className={`text-xl font-bold ${isPastSchedule ? 'text-gray-500' : 'text-blue-600'}`}>
                     {schedule.time}
                   </span>
+                  
+                  {/* 진행상태 뱃지 */}
+                  {!isPastSchedule && schedule.maxAttendees && (() => {
+                    const badge = getStatusBadge(schedule.maxAttendees, stats.attending)
+                    if (badge) {
+                      return (
+                        <Badge variant="outline" className={`${badge.className} ml-2`}>
+                          {badge.text}
+                        </Badge>
+                      )
+                    }
+                    return null
+                  })()}
                 </div>
 
                 {/* Location */}
@@ -409,8 +458,8 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                 <div className="flex gap-1">
                   {/* 인원 제한 뱃지 */}
                   {schedule.maxAttendees && !isPastSchedule && (
-                    <Badge variant="outline" className={`${isFull ? 'bg-red-50 text-red-600 border-red-200' : 'bg-blue-50 text-blue-600 border-blue-200'}`}>
-                      {isFull ? '마감됨' : `잔여 ${remainingSpots}명`}
+                    <Badge variant="outline" className={`${isFull ? 'bg-gray-100 text-gray-600 border-gray-200' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>
+                      {isFull ? `잔여 0명` : `잔여 ${remainingSpots}명`}
                       <span className="ml-1 text-xs opacity-70">
                          / {schedule.maxAttendees}명
                       </span>
