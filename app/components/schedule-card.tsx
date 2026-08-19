@@ -295,7 +295,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
 
               {/* Auto Team Formation Buttons */}
               {onTeamFormation && (() => {
-                const attendingCount = schedule.attendees?.filter((a: any) => a.status === 'attending' || a.status === 'ATTENDING').length || 0
+                const attendingCount = stats.attending
                 const isEnoughMembers = attendingCount >= 10
                 const isTimeReady = daysLeft <= 2
                 const isEnabled = isEnoughMembers && isTimeReady && !isSubmitting

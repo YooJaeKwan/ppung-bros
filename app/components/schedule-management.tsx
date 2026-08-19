@@ -75,6 +75,8 @@ export function ScheduleManagement({
   const [isLoadingLocations, setIsLoadingLocations] = useState(false)
   const [updatingSchedules, setUpdatingSchedules] = useState<Set<string>>(new Set())
   const [teamCount, setTeamCount] = useState(3)
+  const [sortBy, setSortBy] = useState<'date' | 'location' | 'time' | 'deadline'>('date')
+  const [filterLocation, setFilterLocation] = useState<string>('all')
 
   const [newSchedule, setNewSchedule] = useState({
     type: "internal",
@@ -510,6 +512,17 @@ export function ScheduleManagement({
 
   const nextUpcomingSchedule = getNextUpcomingSchedule()
 
+  const upcomingLocations = Array.from(new Set(schedules
+    .filter(schedule => {
+      const [year, month, day] = schedule.date.split('-')
+      const [hours, minutes] = (schedule.time || '23:59').split(':')
+      const matchDateTime = new Date(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes))
+      return matchDateTime > new Date()
+    })
+    .map(s => s.location)
+    .filter(Boolean)
+  )).sort()
+
   // viewMode에 따라 표시할 스케줄 필터링 (경기 시간 기준)
   const filteredSchedules = schedules.filter(schedule => {
     const [year, month, day] = schedule.date.split('-')
@@ -522,11 +535,13 @@ export function ScheduleManagement({
       return matchDateTime <= now
     } else {
       // 경기 시간이 지나지 않은 경기 (upcoming)
-      // 다음 일정은 상단에 표시되므로 목록에서 제외 (제거됨 - 모두 같은 리스트로 표시)
-      // if (nextUpcomingSchedule && schedule.id === nextUpcomingSchedule.id) {
-      //   return false
-      // }
-      return matchDateTime > now
+      if (matchDateTime <= now) return false
+
+      if (filterLocation !== 'all' && schedule.location !== filterLocation) {
+        return false
+      }
+
+      return true
     }
   }).sort((a, b) => {
     const [yearA, monthA, dayA] = a.date.split('-')
@@ -538,8 +553,39 @@ export function ScheduleManagement({
       // 경기결과: 최신순 (내림차순)
       return dateB.getTime() - dateA.getTime()
     } else {
-      // 경기예정: 가까운 순 (오름차순)
-      return dateA.getTime() - dateB.getTime()
+      // 경기예정: 정렬 기준에 따라 다름
+      if (sortBy === 'location') {
+        const locA = a.location || ''
+        const locB = b.location || ''
+        if (locA !== locB) return locA.localeCompare(locB)
+        return dateA.getTime() - dateB.getTime()
+      } else if (sortBy === 'time') {
+        const timeA = a.time || '23:59'
+        const timeB = b.time || '23:59'
+        if (timeA !== timeB) return timeA.localeCompare(timeB)
+        return dateA.getTime() - dateB.getTime()
+      } else if (sortBy === 'deadline') {
+        const getAttendingCount = (schedule: any) => {
+          return schedule.attendees ? schedule.attendees.filter((att: any) =>
+            att.status === 'attending' || att.status === 'attended' || att.status === 'ATTENDING'
+          ).length : 0
+        }
+        const remainingSpotsA = a.maxAttendees ? Math.max(0, a.maxAttendees - getAttendingCount(a)) : 9999
+        const remainingSpotsB = b.maxAttendees ? Math.max(0, b.maxAttendees - getAttendingCount(b)) : 9999
+
+        if (remainingSpotsA !== remainingSpotsB) {
+          return remainingSpotsA - remainingSpotsB
+        }
+        return dateA.getTime() - dateB.getTime()
+      }
+
+      // date (기본값)
+      if (dateA.getTime() !== dateB.getTime()) {
+        return dateA.getTime() - dateB.getTime()
+      }
+      const timeA = a.time || '23:59'
+      const timeB = b.time || '23:59'
+      return timeA.localeCompare(timeB)
     }
   })
 
@@ -808,18 +854,6 @@ export function ScheduleManagement({
       )
       }
 
-      {/* 일정 추가 버튼 (총무만) */}
-      {
-        isManagerMode && (
-          <div className="flex justify-end mb-4">
-            <Button onClick={() => setIsAddingSchedule(true)} className="gap-2">
-              <Plus className="h-4 w-4" />
-              일정 추가
-            </Button>
-          </div>
-        )
-      }
-
       {/* 에러 메시지 */}
       {
         error && (
@@ -833,6 +867,43 @@ export function ScheduleManagement({
 
       {/* 일정 목록 - viewMode에 따라 표시 */}
       <div className="space-y-6">
+        {viewMode === 'upcoming' && upcomingLocations.length > 0 && (
+          <div className="flex justify-end gap-2">
+            {/* 일정 추가 버튼 (총무만) */}
+            {
+              isManagerMode && (
+                <div className="flex justify-start mb-4">
+                  <Button onClick={() => setIsAddingSchedule(true)} className="gap-2">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              )
+            }
+            <Select value={filterLocation} onValueChange={setFilterLocation}>
+              <SelectTrigger className="w-[140px] bg-white">
+                <SelectValue placeholder="구장 필터" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">모든 구장</SelectItem>
+                {upcomingLocations.map((loc: any) => (
+                  <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={sortBy} onValueChange={(val: any) => setSortBy(val)}>
+              <SelectTrigger className="w-[140px] bg-white">
+                <SelectValue placeholder="정렬 기준" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date">날짜순</SelectItem>
+                <SelectItem value="location">구장순</SelectItem>
+                <SelectItem value="time">시간순</SelectItem>
+                <SelectItem value="deadline">마감임박순</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         {viewMode === 'upcoming' ? (
           /* 경기예정 모드 */
           <div className="space-y-4">
