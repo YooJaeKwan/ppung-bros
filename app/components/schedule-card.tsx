@@ -173,8 +173,8 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
     return (
       <Card className={`mb-3 overflow-hidden transition-all hover:shadow-md ${
         highlight 
-          ? `border-2 border-blue-500`
-          : `border-l-4 border-l-blue-500`
+          ? `border-l-4 border-l-blue-500`
+          : ``
       }`}>
         <CardContent className="p-4">
           <div className="flex justify-between items-start mb-3">
