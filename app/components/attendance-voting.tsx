@@ -453,7 +453,7 @@ export function AttendanceVoting({
             불참
           </Button>
         </div>
-        
+
         {allowGuests && (
           <Dialog open={isGuestDialogOpen} onOpenChange={(open) => {
             setIsGuestDialogOpen(open)
@@ -462,7 +462,7 @@ export function AttendanceVoting({
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" className={`w-full h-8 text-xs ${formationConfirmed || isFull ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={isPastSchedule || formationConfirmed || isFull}>
                 <UserPlus className="h-3 w-3 mr-1" />
-                {isFull ? '인원 마감 (게스트 초대 불가)' : '게스트 초대'}
+                {isFull ? '인원 마감 (웨이팅 가능)' : '게스트 초대'}
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md">
@@ -593,7 +593,7 @@ export function AttendanceVoting({
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" className={`w-full ${formationConfirmed || isFull ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={isPastSchedule || formationConfirmed || isFull}>
                 <UserPlus className="h-4 w-4 mr-1" />
-                {isFull ? '인원 마감 (게스트 초대 불가)' : '게스트 초대'}
+                {isFull ? '인원 마감 (웨이팅 가능)' : '게스트 초대'}
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md">

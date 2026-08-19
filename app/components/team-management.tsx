@@ -45,6 +45,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
   const [showInactive, setShowInactive] = useState(false)
   const [sortBy, setSortBy] = useState<"name" | "level">("name") // 기본: 가나다순
   const [searchQuery, setSearchQuery] = useState<string>("") // 이름 검색어
+  const [positionFilter, setPositionFilter] = useState<string>("ALL") // 포지션 필터
   const [editingMember, setEditingMember] = useState<any>(null)
   const [tempLevel, setTempLevel] = useState<number>(1)
   const [isSaving, setIsSaving] = useState(false)
@@ -186,6 +187,11 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
   const getFilteredMembers = () => {
     let filtered = teamMembers
 
+    // 포지션 필터 적용
+    if (positionFilter !== "ALL") {
+      filtered = filtered.filter(member => member.mainPosition === positionFilter)
+    }
+
     // 이름 검색 필터 적용
     if (searchQuery.trim()) {
       filtered = filtered.filter(member => {
@@ -319,22 +325,34 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
           </SelectContent>
         </Select>
 
-        {/* 이름 검색 필터 - 가나다순일 때만 표시 */}
-        {sortBy === "name" && (
-          <div className="w-full relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="이름으로 검색..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-10 pl-9"
-            />
-          </div>
-        )}
-
-        {/* 포지션 필터 탭 제거됨 */}
+        {/* 포지션 필터 */}
+        <Select value={positionFilter} onValueChange={setPositionFilter}>
+          <SelectTrigger className="w-full h-10">
+            <SelectValue placeholder="포지션 필터" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">전체 포지션</SelectItem>
+            <SelectItem value="PIVO">PIVO (피보 - 공격)</SelectItem>
+            <SelectItem value="ALA">ALA (알라 - 윙어)</SelectItem>
+            <SelectItem value="FIXO">FIXO (픽소 - 수비)</SelectItem>
+            <SelectItem value="GOLEIRO">GOLEIRO (골레이로 - 골키퍼)</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
+
+      {/* 이름 검색 필터 - 가나다순일 때만 표시 */}
+      {sortBy === "name" && (
+        <div className="w-full relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="이름으로 검색..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full h-10 pl-9"
+          />
+        </div>
+      )}
 
       {sortBy === "level" ? (
         // 레벨별 그룹화된 멤버 표시
@@ -863,7 +881,14 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                         <div className="space-y-1.5">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-bold text-gray-900">{member.name}</span>
-                            {/* 포지션 배지 제거됨 */}
+                            {member.mainPosition && (
+                              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                                {member.mainPosition === 'PIVO' ? 'PIVO(공격)' :
+                                  member.mainPosition === 'ALA' ? 'ALA(윙어)' :
+                                    member.mainPosition === 'FIXO' ? 'FIXO(수비)' :
+                                      member.mainPosition === 'GOLEIRO' ? 'GOLEIRO(골키퍼)' : member.mainPosition}
+                              </Badge>
+                            )}
                             {/* 레벨 배지 */}
                             <Badge
                               variant="outline"
@@ -964,6 +989,17 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                                   </div>
                                 </div>
 
+                                <div className="space-y-2">
+                                  <Label className="text-xs font-medium text-gray-700">선호 포지션</Label>
+                                  <div className="p-2 bg-gray-50 rounded-lg border flex items-center gap-2">
+                                    <span className="text-sm font-semibold text-blue-700">
+                                      {member.mainPosition === 'PIVO' ? 'PIVO(공격)' :
+                                        member.mainPosition === 'ALA' ? 'ALA(윙어)' :
+                                          member.mainPosition === 'FIXO' ? 'FIXO(수비)' :
+                                            member.mainPosition === 'GOLEIRO' ? 'GOLEIRO(골키퍼)' : member.mainPosition || '미정'}
+                                    </span>
+                                  </div>
+                                </div>
 
                                 <div className="space-y-2">
                                   <Label className="text-xs font-medium text-gray-700">가입일</Label>

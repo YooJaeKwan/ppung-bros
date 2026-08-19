@@ -10,6 +10,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Users, AlertCircle, CheckCircle } from "lucide-react"
 import { regionData, provinceOptions } from "@/lib/region-data"
 
+const FUTSAL_POSITIONS = [
+  { value: "PIVO", label: "PIVO (피보 - 공격)" },
+  { value: "ALA", label: "ALA (알라 - 윙어)" },
+  { value: "FIXO", label: "FIXO (픽소 - 수비)" },
+  { value: "GOLEIRO", label: "GOLEIRO (골레이로 - 골키퍼)" },
+]
+
 interface UserSignupProps {
   kakaoUserInfo: any
   onSignupComplete: (userData: any) => void
@@ -22,7 +29,8 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
     phoneNumber: "",
     birthYear: "",
     region: "",
-    city: ""
+    city: "",
+    mainPosition: ""
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -57,6 +65,11 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
       newErrors.region = "시도를 선택해주세요."
     } else if (!formData.city) {
       newErrors.city = "구/시를 선택해주세요."
+    }
+
+    // 선호 포지션 검증
+    if (!formData.mainPosition) {
+      newErrors.mainPosition = "선호 포지션을 선택해주세요."
     }
 
     setErrors(newErrors)
@@ -105,7 +118,8 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
         phoneNumber: formData.phoneNumber,
         birthYear: formData.birthYear,
         region: formData.region,
-        city: formData.city
+        city: formData.city,
+        mainPosition: formData.mainPosition
       }
 
       console.log('회원가입 요청 데이터:', signupData)
@@ -274,6 +288,29 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
                   <p className="text-sm text-red-500">{errors.city}</p>
                 )}
               </div>
+            )}
+          </div>
+
+          {/* 선호 포지션 선택 */}
+          <div className="space-y-2">
+            <Label>선호 포지션 *</Label>
+            <Select
+              value={formData.mainPosition}
+              onValueChange={(value) => handleInputChange('mainPosition', value)}
+            >
+              <SelectTrigger className={errors.mainPosition ? "border-red-500" : ""}>
+                <SelectValue placeholder="선호 포지션을 선택해주세요" />
+              </SelectTrigger>
+              <SelectContent>
+                {FUTSAL_POSITIONS.map((pos) => (
+                  <SelectItem key={pos.value} value={pos.value}>
+                    {pos.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.mainPosition && (
+              <p className="text-sm text-red-500">{errors.mainPosition}</p>
             )}
           </div>
 

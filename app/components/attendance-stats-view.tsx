@@ -157,8 +157,8 @@ export function AttendanceStatsView() {
                         <thead>
                             <tr className="bg-gray-50">
                                 <th className="border px-2 py-2 text-center min-w-[50px]">등급</th>
-                                <th className="sticky left-0 bg-gray-50 text-center z-10 border px-2 py-2 text-left min-w-[50px]">이름</th>
-                                <th className="border px-2 py-2 text-center min-w-[50px]">출석률</th>
+                                <th className="sticky left-0 bg-gray-50 text-center z-10 border px-2 py-2 text-left min-w-[70px] whitespace-nowrap">이름</th>
+                                <th className="border px-2 py-2 text-center min-w-[50px] whitespace-nowrap">출석률</th>
                                 {data.schedules.map(schedule => (
                                     <th
                                         key={schedule.id}
@@ -175,10 +175,10 @@ export function AttendanceStatsView() {
                         <tbody>
                             {data.users.map(user => (
                                 <tr key={user.id} className="hover:bg-gray-50">
-                                    <td className={`border px-2 py-1.5 text-center font-bold ${getGrade(user.rate).color}`}>
+                                    <td className={`border px-2 py-1.5 text-center font-bold whitespace-nowrap ${getGrade(user.rate).color}`}>
                                         {getGrade(user.rate).grade}
                                     </td>
-                                    <td className="sticky left-0 bg-white z-10 text-center border px-2 py-1.5 font-medium">
+                                    <td className="sticky left-0 bg-white z-10 text-center border px-2 py-1.5 font-medium min-w-[70px] whitespace-nowrap">
                                         {user.name}
                                     </td>
                                     <td className={`border px-2 py-1.5 text-center font-semibold ${user.rate >= 80 ? 'text-green-600' :

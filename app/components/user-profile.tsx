@@ -16,6 +16,12 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { getLevelLabel } from '@/lib/level-system'
 
+const FUTSAL_POSITIONS = [
+  { value: "PIVO", label: "PIVO (피보 - 공격)" },
+  { value: "ALA", label: "ALA (알라 - 윙어)" },
+  { value: "FIXO", label: "FIXO (픽소 - 수비)" },
+  { value: "GOLEIRO", label: "GOLEIRO (골레이로 - 골키퍼)" },
+]
 
 interface UserProfileProps {
   userInfo: any
@@ -28,7 +34,8 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
     realName: userInfo?.realName || "",
     phoneNumber: userInfo?.phoneNumber || "",
     region: userInfo?.region || "",
-    city: userInfo?.city || ""
+    city: userInfo?.city || "",
+    mainPosition: userInfo?.mainPosition || ""
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -105,7 +112,8 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
         realName: formData.realName.trim(),
         phoneNumber: formData.phoneNumber,
         region: formData.region,
-        city: formData.city
+        city: formData.city,
+        mainPosition: formData.mainPosition
       }
 
       console.log('정보 수정 요청:', updateData)
@@ -153,7 +161,8 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
       realName: userInfo?.realName || "",
       phoneNumber: userInfo?.phoneNumber || "",
       region: userInfo?.region || "",
-      city: userInfo?.city || ""
+      city: userInfo?.city || "",
+      mainPosition: userInfo?.mainPosition || ""
     })
     setErrors({})
     setIsEditing(false)
@@ -491,6 +500,26 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
               )} */}
             </div>
 
+            {/* 선호 포지션 수정 */}
+            <div className="space-y-2 mt-4">
+              <Label>선호 포지션</Label>
+              <Select
+                value={formData.mainPosition}
+                onValueChange={(value) => handleInputChange('mainPosition', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="선호 포지션을 선택해주세요" />
+                </SelectTrigger>
+                <SelectContent>
+                  {FUTSAL_POSITIONS.map((pos) => (
+                    <SelectItem key={pos.value} value={pos.value}>
+                      {pos.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* 주발 및 등번호 수정 영역 제거됨 */}
 
             {/* 저장 버튼 */}
@@ -554,7 +583,14 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
                 </div>
               </div>
               <Separator />
-              {/* 주발 및 등번호 표시 영역 제거됨 */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-muted-foreground">선호 포지션</Label>
+                <p className="text-base font-semibold text-blue-700">
+                  {userInfo?.mainPosition
+                    ? FUTSAL_POSITIONS.find(p => p.value === userInfo.mainPosition)?.label || userInfo.mainPosition
+                    : '미정'}
+                </p>
+              </div>
             </CardContent>
           </Card>
 

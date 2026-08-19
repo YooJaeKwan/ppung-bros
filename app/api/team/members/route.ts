@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
         level: true, // 레벨 정보 추가
         role: true,  // 역할 정보 추가
         isActive: true, // 활성 상태 추가
+        mainPosition: true, // 포지션 정보 추가
         createdAt: true
       },
       orderBy: {
@@ -210,6 +211,7 @@ export async function GET(request: NextRequest) {
           level: member.level || 1,
           role: member.role || 'MEMBER',
           isActive: member.isActive,
+          mainPosition: member.mainPosition,
           profileImage: member.image,
           joinDate: member.createdAt.toLocaleDateString('ko-KR'),
           attendanceRate,
@@ -232,6 +234,7 @@ export async function GET(request: NextRequest) {
           level: member.level || 1,
           role: member.role || 'MEMBER',
           isActive: member.isActive,
+          mainPosition: member.mainPosition,
           profileImage: member.image,
           joinDate: member.createdAt.toLocaleDateString('ko-KR'),
           attendanceRate: 0,

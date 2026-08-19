@@ -12,6 +12,7 @@ export async function PUT(request: NextRequest) {
       phoneNumber,
       region,
       city,
+      mainPosition,
       level = null // 총무가 레벨 수정 시 포함
     } = body
 
@@ -93,6 +94,9 @@ export async function PUT(request: NextRequest) {
       updateData.phoneNumber = phoneNumber
       updateData.region = region
       updateData.city = city
+      if (mainPosition !== undefined) {
+        updateData.mainPosition = mainPosition
+      }
     }
 
     // 레벨이 제공된 경우에만 업데이트 (총무가 수정할 때)
@@ -130,6 +134,7 @@ export async function PUT(request: NextRequest) {
         city: updatedUser.city,
         role: updatedUser.role,
         level: updatedUser.level,
+        mainPosition: updatedUser.mainPosition,
         profileImage: updatedUser.image,
         registeredAt: updatedUser.createdAt.toISOString(),
         updatedAt: updatedUser.updatedAt.toISOString()
