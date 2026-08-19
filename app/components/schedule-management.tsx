@@ -906,9 +906,9 @@ export function ScheduleManagement({
         )}
         {viewMode === 'upcoming' ? (
           /* 경기예정 모드 */
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
             {filteredSchedules.length === 0 ? (
-              <Card>
+              <Card className="lg:col-span-2">
                 <CardContent className="pt-6">
                   <div className="text-center space-y-4">
                     <div className="text-muted-foreground">예정된 경기가 없습니다.</div>
@@ -969,9 +969,9 @@ export function ScheduleManagement({
           </div>
         ) : (
           /* 경기결과 모드 */
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
             {filteredSchedules.length === 0 ? (
-              <Card>
+              <Card className="lg:col-span-2">
                 <CardContent className="pt-6">
                   <div className="text-center">
                     <div className="text-muted-foreground">지난 경기가 없습니다.</div>
