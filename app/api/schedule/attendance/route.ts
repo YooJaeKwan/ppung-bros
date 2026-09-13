@@ -280,8 +280,9 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // 아직 투표하지 않은 사용자들도 포함 (모든 팀원)
+    // 아직 투표하지 않은 사용자들도 포함 (모든 활성 팀원)
     const allUsers = await prisma.user.findMany({
+      where: { isActive: true },
       select: {
         id: true,
         realName: true,

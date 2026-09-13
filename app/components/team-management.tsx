@@ -42,7 +42,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
   const [teamMembers, setTeamMembers] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
-  const [showInactive, setShowInactive] = useState(false)
+  const [showInactive, setShowInactive] = useState(true)
   const [sortBy, setSortBy] = useState<"name" | "level">("name") // 기본: 가나다순
   const [searchQuery, setSearchQuery] = useState<string>("") // 이름 검색어
   const [positionFilter, setPositionFilter] = useState<string>("ALL") // 포지션 필터

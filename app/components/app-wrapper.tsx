@@ -77,11 +77,17 @@ export function AppWrapper() {
           const result = await response.json()
 
           if (response.ok && result.exists) {
-            // 유효한 세션 - 대시보드로 이동
-            console.log('세션 검증 성공')
-            setUserInfo(result.user)
-            saveSession(result.user) // 최신 정보로 갱신
-            setAppState('dashboard')
+            if (result.user.isActive === false) {
+              alert('비활성화 상태입니다. 총무에게 문의하세요.')
+              clearSession()
+              setAppState('login')
+            } else {
+              // 유효한 세션 - 대시보드로 이동
+              console.log('세션 검증 성공')
+              setUserInfo(result.user)
+              saveSession(result.user) // 최신 정보로 갱신
+              setAppState('dashboard')
+            }
           } else {
             // 유효하지 않은 세션 - 로그인 화면
             console.log('세션이 유효하지 않음, 로그인 필요')
@@ -124,12 +130,19 @@ export function AppWrapper() {
       }
 
       if (result.exists) {
-        // 기존 사용자 - 세션 저장 후 대시보드로 이동
-        console.log('기존 사용자 로그인:', result.user)
-        saveSession(result.user)
-        setUserInfo(result.user)
-        setAppState('dashboard')
-        setIsLoading(false)
+        if (result.user.isActive === false) {
+          alert('비활성화 상태입니다. 총무에게 문의하세요.')
+          clearSession()
+          setAppState('login')
+          setIsLoading(false)
+        } else {
+          // 기존 사용자 - 세션 저장 후 대시보드로 이동
+          console.log('기존 사용자 로그인:', result.user)
+          saveSession(result.user)
+          setUserInfo(result.user)
+          setAppState('dashboard')
+          setIsLoading(false)
+        }
       } else {
         // 신규 사용자 - 회원가입 화면으로 이동
         console.log('신규 사용자 - 회원가입 진행')
@@ -142,7 +155,7 @@ export function AppWrapper() {
       setError('사용자 정보 확인 중 오류가 발생했습니다.')
       setIsLoading(false)
     }
-  }, [saveSession])
+  }, [saveSession, clearSession])
 
   // 콜백 페이지에서 저장한 카카오 로그인 정보 처리
   useEffect(() => {

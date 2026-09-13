@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
         role: true,
         level: true,
         image: true,
+        isActive: true,
         createdAt: true
       }
     })
@@ -54,6 +55,7 @@ export async function POST(request: NextRequest) {
           city: existingUser.city,
           role: existingUser.role,
           level: existingUser.level,
+          isActive: existingUser.isActive,
           profileImage: existingUser.image,
           registeredAt: existingUser.createdAt.toISOString()
         }

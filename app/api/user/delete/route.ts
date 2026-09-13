@@ -53,39 +53,24 @@ export async function DELETE(request: NextRequest) {
         where: { userId: targetUserId }
       })
 
-      // 2. 선수 통계 삭제
-      await tx.schedulePlayerStat.deleteMany({
-        where: { userId: targetUserId }
+      // 2. 게스트 초대 기록 해제
+      await tx.scheduleAttendance.updateMany({
+        where: { invitedByUserId: targetUserId },
+        data: { invitedByUserId: null }
       })
 
-      // 3. 팀 멤버십 삭제
-      await tx.teamMember.deleteMany({
-        where: { userId: targetUserId }
+      // 3. 댓글 삭제 (ScheduleComment 모델)
+      await tx.scheduleComment.deleteMany({
+        where: { authorId: targetUserId }
       })
 
-      // 4. 알림 삭제
-      await tx.notification.deleteMany({
-        where: { userId: targetUserId }
-      })
-
-      // 5. 댓글 삭제
-      await tx.comment.deleteMany({
-        where: { userId: targetUserId }
-      })
-
-      // 6. 게시글 삭제
-      await tx.post.deleteMany({
-        where: { userId: targetUserId }
-      })
-
-      // 7. 생성한 일정 삭제 (다른 사람이 참석한 경우 문제가 될 수 있으므로 주의)
-      // 일정은 삭제하지 않고 creatorId만 null로 설정
+      // 4. 생성한 일정 소유권 이전 (createdBy는 필수 필드이므로 관리자에게 이전)
       await tx.schedule.updateMany({
-        where: { creatorId: targetUserId },
-        data: { creatorId: null }
+        where: { createdBy: targetUserId },
+        data: { createdBy: adminUserId }
       })
 
-      // 8. 사용자 삭제
+      // 5. 사용자 삭제 (UserBadge 등은 cascade 삭제됨)
       await tx.user.delete({
         where: { id: targetUserId }
       })
