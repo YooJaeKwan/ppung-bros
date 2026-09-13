@@ -238,6 +238,7 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
                                     <AttendanceVoting
                                         scheduleId={nextSchedule.id}
                                         currentUserId={currentUser.id}
+                                        currentUserIsActive={currentUser.isActive !== false}
                                         isManagerMode={currentUser.role === 'ADMIN'}
                                         isPastSchedule={isScheduleStarted(nextSchedule.date, nextSchedule.time)}
                                         allowGuests={nextSchedule.allowGuests}

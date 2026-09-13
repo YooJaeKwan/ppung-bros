@@ -77,6 +77,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (!user.isActive) {
+      return NextResponse.json(
+        { error: '비활성화 상태에서는 투표할 수 없습니다.' },
+        { status: 403 }
+      )
+    }
+
     // 기존 참석 정보 확인 후 upsert
     const previousAttendance = await prisma.scheduleAttendance.findUnique({
       where: {

@@ -34,6 +34,7 @@ interface AttendanceVotingProps {
   initialAttendees?: Attendee[]
   initialStats?: AttendanceStats
   initialMyStatus?: 'attending' | 'not_attending' | 'waiting' | 'pending'
+  currentUserIsActive?: boolean
 }
 
 interface AttendanceStats {
@@ -67,7 +68,8 @@ export function AttendanceVoting({
   initialAttendees,
   initialStats,
   initialMyStatus,
-  compact = false
+  compact = false,
+  currentUserIsActive = true
 }: AttendanceVotingProps) {
   // Initialize state from props if provided (performance optimization)
   const getInitialMyStatus = (): 'attending' | 'not_attending' | 'waiting' | 'pending' => {
@@ -156,7 +158,7 @@ export function AttendanceVoting({
   }, [detailDialogType, attendees.length, scheduleId])
 
   const handleVote = async (status: 'ATTENDING' | 'NOT_ATTENDING' | 'WAITING') => {
-    if (isSubmitting || isPastSchedule) return
+    if (isSubmitting || isPastSchedule || !currentUserIsActive) return
 
     if (hasTeamFormation) {
       if (!confirm('팀편성 결과가 있습니다. 투표를 변경하면 팀편성 결과가 초기화됩니다. 투표하시겠습니까?')) {
@@ -549,6 +551,13 @@ export function AttendanceVoting({
             팀편성이 확정되어 투표가 마감되었습니다
           </div>
         )}
+        {!currentUserIsActive && (
+          <div className="text-center p-3 bg-gray-50 rounded-lg border text-sm text-gray-500">
+            비활성화 상태에서는 투표할 수 없습니다. 총무에게 문의하세요.
+          </div>
+        )}
+        
+        {currentUserIsActive && (
         <div className="flex gap-2">
           {isFull && myStatus !== 'attending' ? (
             <Button
@@ -584,8 +593,9 @@ export function AttendanceVoting({
             불참
           </Button>
         </div>
+        )}
 
-        {allowGuests && (
+        {allowGuests && currentUserIsActive && (
           <Dialog open={isGuestDialogOpen} onOpenChange={(open) => {
             setIsGuestDialogOpen(open)
             if (!open) { setGuestName(''); setGuestLevel(''); setSameTeamAsInviter(false); }

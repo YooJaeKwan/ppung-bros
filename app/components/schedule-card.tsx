@@ -280,6 +280,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
               <AttendanceVoting
                 scheduleId={schedule.id}
                 currentUserId={currentUser.id}
+                currentUserIsActive={currentUser.isActive !== false}
                 isPastSchedule={isPastSchedule}
                 allowGuests={schedule.allowGuests}
                 hasTeamFormation={!!schedule.teamFormation}
@@ -555,6 +556,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                   <AttendanceVoting
                     scheduleId={schedule.id}
                     currentUserId={currentUser.id}
+                    currentUserIsActive={currentUser.isActive !== false}
                     isPastSchedule={isPastSchedule}
                     allowGuests={schedule.allowGuests}
                     hasTeamFormation={!!schedule.teamFormation}
